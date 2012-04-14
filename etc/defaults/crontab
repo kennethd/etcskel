@@ -1,0 +1,27 @@
+# edit your crontab with the command `crontab -e`
+# lines starting with a # are comments
+
+# set MAILTO to the address you want output to go to
+#MAILTO=you@example.com
+
+# any scripts in these directories will be run at the appropriate time
+@reboot   [ -d "$HOME/cron.reboot"  ] && /bin/run-parts $HOME/cron.reboot
+@hourly   [ -d "$HOME/cron.hourly"  ] && /bin/run-parts $HOME/cron.hourly
+@daily    [ -d "$HOME/cron.daily"   ] && /bin/run-parts $HOME/cron.daily
+@weekly   [ -d "$HOME/cron.weekly"  ] && /bin/run-parts $HOME/cron.weekly
+@monthly  [ -d "$HOME/cron.monthly" ] && /bin/run-parts $HOME/cron.monthly
+@yearly   [ -d "$HOME/cron.yearly"  ] && /bin/run-parts $HOME/cron.yearly
+
+# you can schedule jobs to run at custom intervals, see `man 5 crontab`, fields are:
+# min     hour    dom     mon     dow     command
+# (0-59)  (0-23)  (1-31)  (1-12)  (0-7)   ...
+# 
+# any/all   *
+# ranges    2-4
+# lists     2,4,6,8-10
+# steps     8-18/2 (every other hour workday), */2 (every other hour always)
+#
+# within command%unescaped percent signs indicate newlines%to allow STDIN
+# if spec. both day/month & day/week, command will run on either
+
+

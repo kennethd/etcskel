@@ -1,0 +1,3 @@
+#!/bin/sh
+[ -d "$HOME/backups/conf" ] && crontab -l > "$HOME/backups/conf/crontab-l.pre-reset"
+[ -e "$HOME/etc/defaults/crontab" ] && crontab "$HOME/etc/defaults/crontab"

@@ -1,0 +1,74 @@
+from __future__ import absolute_import
+
+# Add auto-completion and a stored history file of commands to your Python
+# interactive interpreter. Requires Python 2.0+, readline. Autocomplete is
+# bound to the Esc key by default (you can change it - see readline docs).
+#
+# Store the file in ~/.pystartup, and set an environment variable to point
+# to it:  "export PYTHONSTARTUP=/max/home/itamar/.pystartup" in bash.
+#
+# Note that PYTHONSTARTUP does *not* expand "~", so you have to put in the
+# full path to your home directory.
+
+import atexit
+import os
+import readline
+import rlcompleter
+
+historyPath = os.path.expanduser("~/.pyhistory")
+
+def save_history(historyPath=historyPath):
+    import readline
+    readline.write_history_file(historyPath)
+
+if os.path.exists(historyPath):
+    readline.read_history_file(historyPath)
+
+atexit.register(save_history)
+# keep os around.. 
+del atexit, readline, rlcompleter, save_history, historyPath
+
+import datetime
+from datetime import date, timedelta
+from decimal import Decimal
+import inspect
+import operator 
+import random
+import re
+import string
+from subprocess import Popen, PIPE
+import sys
+import time
+import warnings
+
+# http://users.rcn.com/python/download/Descriptor.htm
+class RevealAccess(object):
+    """A data descriptor that sets and returns values
+       normally and prints a message logging their access.
+    """
+
+    def __init__(self, initval=None, name='var'):
+        self.val = initval
+        self.name = name
+
+    def __get__(self, obj, objtype):
+        print 'Retrieving', self.name
+        return self.val
+
+    def __set__(self, obj, val):
+        print 'Updating' , self.name
+        self.val = val
+
+class ExampleDescriptor(object):
+    x = RevealAccess(10, 'var "x"')
+    y = RevealAccess(5, 'var "y"')
+
+    def init(self):
+        self.z = RevealAccess(0, 'var "z"')
+
+    def doTest(self):
+        x0 = 'self.x is', self.x
+        y0 = 'self.y is', self.y
+        z0 = 'self.z is', self.z
+        print 'x, y, z =', x0, y0, z0
+

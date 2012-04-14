@@ -1,0 +1,68 @@
+#!/bin/bash
+logger "running backup-incremental for $LOGNAME"
+set -x
+
+# backup-incremental
+# creates backup tarfile as configured from directories listed in ~/etc/backup/{include,exclude}
+
+# if your backups take up too much space for taking a full snapshot daily, you can set up your cron
+# to do a full backup only on sunday, and run this one daily for supplemental backups of only the 
+# files which have changed since the previous Sunday
+
+DATEI="$( date +'%Y-%m-%d' )"
+DATEW="$( date +'%w' )"
+HOST="$( hostname )"
+
+# override by exporting non-default value before calling
+[ -z "$BACKUP_INCR_DIR" ] && BACKUP_INCR_DIR="$HOME/backups/daily"
+[ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
+[ -z "$BACKUP_INCR_KEEP_DAYS" ] && BACKUP_INCR_KEEP_DAYS=6
+
+if [ ! -e "$BACKUP_ETC" ]; then mkdir -p "$BACKUP_ETC"; fi
+if [ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ]; then exit 1; fi
+
+# allow disabling backups by touching a file
+if [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ]; then exit 0; fi
+
+if [ ! -e "$BACKUP_INCR_DIR" ]; then mkdir -p "$BACKUP_INCR_DIR"; fi
+if [ ! -w "$BACKUP_INCR_DIR" ]; then exit 1; fi
+
+# delete old backups 
+find "$BACKUP_INCR_DIR" -daystart -mtime +$BACKUP_INCR_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
+
+# read each line of $BACKUP_ETC/include into an array element
+IFS="
+"
+if [ -e "$BACKUP_ETC/include" ]; then
+    for line in $( cat "$BACKUP_ETC/include" ); do
+        # allow for commented out lines in file
+        echo "$line" | grep '^\s*#' >/dev/null
+        if [ "$?" = "0" ]; then continue; fi
+        # ignore lines containing only whitespace
+        echo "$line" | grep '^\s*$' >/dev/null
+        if [ "$?" = "0" ]; then continue; fi
+        DIRS[${#DIRS[*]}]="$( echo $line | tr -t '\n' '' | sed 's#\([ \t]\)#\\\1#g' )"
+    done
+fi
+IFS=" "
+
+# default backup target to $HOME
+if [ ${#DIRS[*]} = 0 ]; then
+    DIRS=( "$HOME" )
+fi
+
+if [ ! -e "$BACKUP_ETC/exclude" ]; then
+    touch "$BACKUP_ETC/exclude"
+fi
+
+# partial tar backup since last sunday 
+# date --date=-$DATEW\ days +'%Y-%m-%d'
+nice tar --create \
+    --file "$BACKUP_INCR_DIR/$HOST.$LOGNAME.$DATEI.tar.gz" \
+    --after-date "$( date --date=-$DATEW\ days +'%Y-%m-%d' )" \
+    --blocking-factor 126 \
+    --label "Incremental Backup of $HOST for $LOGNAME on $DATEI" \
+    --exclude-from "$BACKUP_ETC/exclude" \
+    --gzip \
+    ${DIRS[*]}
+

@@ -1,0 +1,42 @@
+*/.adobe
+*/.balazar_brothers
+*/.cache
+*/.config
+*/.cpan
+# remove if you use evolution to read mail
+*/.evolution
+*/.gconf
+*/.gimp
+*/.gimp-2*
+*/.gnome
+*/.gnome2
+*/.googleearth
+*/.gPlanarity
+*/.java
+*/.kde
+*/.local
+*/.macromedia
+*/.metacity
+# are you ok with losing all bookmarks & browser history? (chrome puts data in .config)
+*/.mozilla
+*/.nautilus
+*/.openoffice*
+*/.opera
+# .purple & .Skype may contain chat logs you want to keep
+*/.purple
+*/.Skype
+*/.sudoku
+*/.thumbnails
+*/.wine
+*/.xine
+*/Downloads/*
+*/Maildir/.IN-*
+*/Maildir/.INCOMING/*
+*/Maildir/.lists.*
+*/Maildir/.spam-*
+*/backups/daily/*
+*/backups/full/*
+*/backups/weekly/*
+*/downloads/*
+*/lib/python/*
+*/src/*

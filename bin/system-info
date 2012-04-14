@@ -1,0 +1,270 @@
+#!/bin/bash
+
+# Generate a summary of system information.
+#
+# ----------------------------------------------------------------------
+# TODO:  S.M.A.R.T., hdparm
+#
+# ----------------------------------------------------------------------
+# Changelog 
+# ----------------------------------------------------------------------
+# Wed Feb  2 17:03:35 PST 2005
+# - Added a few features from Carla Schroeder's NewsForge article and
+#   other sources
+#     http://hardware.newsforge.com/hardware/05/01/25/2034227.shtml?tid=126&tid=125
+#    - /proc/ide/ data.
+#    - /proc/sys/dev/cdrom/info  # CDROM info
+#    - /proc/scsi/scsi           # SCSI info
+#    - /proc/tty/drivers/serial Thansk to Rick Moen.
+#
+# - Fixed a patch goof.
+# - Removed folding from 'tabout'  OK, it's going to go over 80 colums.
+#   Deal with it.
+# 
+# ----------------------------------------------------------------------
+# Note that some commands / files require root access.  'sudo' is used
+# to provide this, you can scan this file for sudo instances to
+# determine where it goes root.
+# ----------------------------------------------------------------------
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+function tabout () { sed -e '/^/s//	/'; }
+function spaceout () { sed -e '/^/s//    /'; }
+
+# init sudo:
+sudo -v
+
+cat <<EOF
+
+			System Configuration Summary
+			----------------------------
+
+Date:  $( date )
+User:  $USER: $( grep $USER /etc/passwd | cut -f 5 -d ':' | cut -f 1 -d , )
+
+Hostname: $( hostname )
+$( uname -a | tabout )
+
+Uptime: $( uptime )
+
+$( basename $0 ) version: 1.7, 2002/04/05 20:10:44
+
+========================================================================
+
+Basic Hardware:
+------------------------------------
+
+  cpu:
+  --------------------
+    $( echo; cat /proc/cpuinfo | tabout )
+
+  memory:
+  --------------------
+    $( echo; cat /proc/meminfo | tabout )
+
+  PCI:
+  --------------------
+    $( echo; lspci | tabout )
+
+  Serial subsystem:
+  --------------------
+    $( if sudo test -f /proc/tty/driver/serial; then 
+	    sudo cat /proc/tty/driver/serial | tabout
+	else echo "No serial drivers found" | tabout
+	fi)
+
+  IDE subsystem:
+  --------------------
+    $( if test -f /proc/ide/drivers; then 
+        echo -e "drivers:\n$( cat /proc/ide/drivers)" | tabout
+	else echo "No drivers found" | tabout
+       fi )
+    $( for f in $( find /proc/ide -maxdepth 1 -type f ! -name drivers )
+       do
+           echo -e "\n$( basename $f ):" | tabout
+	   cat $f | tabout
+       done)
+      Drives....
+      $( for d in $( ls -d /proc/ide/hd? )  # drives
+         do
+	     echo -e "\n$( basename $d ):" | tabout
+	     # attributes
+	     for a in media model geometry 
+	     do
+		 if test -f $d/$a; then
+		     echo -e "  $a:  $( sudo cat $d/$a | tr -s '\n' ' ')" | tabout
+		 else
+		     echo "  $a: attribute not found" | tabout
+		 fi
+	     done
+	     if test -f $d/settings; then
+		 echo -e "  settings:" | tabout
+		 sudo cat $d/settings | sed -e 's/^/  /' | tabout
+	     else
+	         echo "Settings:  not found"
+	     fi
+	 done )
+
+  CDROM subsystem:
+  --------------------
+    $( if test -f /proc/sys/dev/cdrom/info; then 
+	   cat /proc/sys/dev/cdrom/info | tabout
+           else echo "No CDROM device detected" | tabout
+       fi )
+
+  SCSI subsystem:
+  --------------------
+    $( if test -f /proc/scsi/scsi; then 
+       cat /proc/scsi/scsi | tabout
+       fi )
+
+
+Networking:
+------------------------------------
+
+  ifconfig:
+  --------------------
+    $( echo; ifconfig | spaceout )
+
+  route:
+  --------------------
+    $( echo; route -n | spaceout )
+
+  arp:
+  --------------------
+    $( echo; arp | spaceout )
+
+
+Disk:
+------------------------------------
+
+  Partitioning:
+  --------------------
+    $( echo; sudo /sbin/fdisk -l /dev/[hs]d[a-z] | tabout )
+
+  Mount table:
+  --------------------
+    $( echo; cat /etc/fstab | spaceout )
+
+  Mounted partitions:
+  --------------------
+    $( echo; cat /proc/mounts | tabout )
+
+  Free space:
+  --------------------
+    $( echo; df | tabout ; echo; df -h | tabout )
+
+  hdparm settings
+  --------------------
+    $( for d in /proc/ide/hd? 
+       do
+         echo -e "\n$( basename $d ):" | tabout
+	 sudo hdparm /dev/$( basename $d ) | tabout
+       done)
+
+  hdparm performance
+  --------------------
+    $( for d in /proc/ide/hd? 
+       do
+	 #sudo hdparm -tT /dev/$( basename $d ) | tabout
+	 echo "skipping hdparm -t performance test"
+       done)
+
+LVM & RAID 
+------------------------------------
+
+  Physical Volumes (pvdisplay)
+  ----------------------------
+    $( pvdisplay | tabout )
+
+  Volume Groups (vgdisplay)
+  ----------------------------
+    $( vgdisplay | tabout )
+
+  Logical Volumes (lvdisplay)
+  ----------------------------
+    $( lvdisplay | tabout )
+
+  RAID Status (cat /proc/mdstat)
+  ----------------------------
+    $( cat /proc/mdstat | tabout )
+
+    $( mdadm --detail /dev/md[0-9]* )
+
+System resources:
+------------------------------------
+
+  IO:
+  --------------------
+    $( echo; cat /proc/ioports | tabout )
+
+  IRQs:
+  --------------------
+    $( echo; cat /proc/interrupts | tabout )
+
+  Devices:
+  --------------------
+    $( echo; cat /proc/devices | tabout )
+
+  filesystems:
+  --------------------
+    $( echo; cat /proc/filesystems | tabout )
+
+  USB devices:
+  --------------------
+    $( echo; cat /proc/bus/usb/devices | tabout )
+
+
+Kernel resources:
+------------------------------------
+
+  Version: $( cat /proc/version )
+
+  Modules:
+  --------------------
+    $( echo; cat /proc/modules | tabout )
+
+
+  Boot Parameters (/proc/cmdline)
+  --------------------
+   $( echo; cat /proc/cmdline | tabout )
+
+
+  Boot Kernel Messages (dmesg):
+  --------------------
+   $( echo; cat /var/log/dmesg | tabout )
+
+
+  Kernel Configuration:
+  --------------------
+    $( echo; cat /boot/config-$( uname -r) | tabout)
+  
+
+hwinfo output:
+------------------------------------
+
+    Following is output of the 'hwinfo' utiltiy.  It duplicates some of
+    the above data, but adds some juicy extras...  If it doesn't exist,
+    try installing it through your distro's packaging system, or from
+    SuSE (upstream source).
+
+    $( which hwinfo >/dev/null 2>&1 && \
+      hwinfo --reallyall | tabout || echo "'hwinfo' not found." | tabout  )
+
+------------------------------------------------------------------------
+This is an automatically created summary.
+The command is "$( basename $0 )".
+Written by Karsten M. Self <kmself@ix.netcom.com>, (c) 2002-2005
+
+This program may be freely distributed and modified, with attribution
+and the following disclaimer.
+This program comes with NO WARRANTY and NO LIABILITY FOR DAMAGES.
+
+Revision information:
+    Author: karsten
+    Version: 1.5
+    Last revised: 2005/02/03 01:15:19
+Customizations:
+    2012-02-17 RAID & LVM sections Kenneth Dombrowski <kenneth@ylayali.net>
+EOF
