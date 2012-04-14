@@ -13,14 +13,14 @@ HOST="$( hostname )"
 [ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 [ -z "$BACKUP_CONF_KEEP_DAYS" ] && BACKUP_CONF_KEEP_DAYS=5
 
-if [ ! -e "$BACKUP_ETC" ]; then mkdir -p "$BACKUP_ETC"; fi
-if [ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ]; then exit 1; fi
+[ ! -e "$BACKUP_ETC" ] && mkdir -p "$BACKUP_ETC"
+[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && exit 1
 
 # allow disabling backups by touching a file
-if [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ]; then exit 0; fi
+[ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ] && exit 0
 
-if [ ! -e "$BACKUP_CONF_DIR" ]; then mkdir -p "$BACKUP_CONF_DIR"; fi
-if [ ! -w "$BACKUP_CONF_DIR" ]; then exit 1; fi
+[ ! -e "$BACKUP_CONF_DIR" ] && mkdir -p "$BACKUP_CONF_DIR"
+[ ! -w "$BACKUP_CONF_DIR" ] && exit 1
 
 # delete old backups 
 find "$BACKUP_CONF_DIR" -daystart -mtime +$BACKUP_CONF_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
@@ -31,7 +31,7 @@ perl -e 'use ExtUtils::Installed; my $inst = ExtUtils::Installed->new(); my @mod
 # following requires 'pip', one of many python module installers (installable with 'easy_install pip')
 which pip >/dev/null && pip freeze > "$BACKUP_CONF_DIR/pip_freeze.$HOST.$DATEI.txt" 
 which gem >/dev/null && gem list > "$BACKUP_CONF_DIR/gem_list.$HOST.$DATEI.txt"
-which npm >/dev/null && npm ls > "$BACKUP_CONF_DIR/npm_ls.$HOST.$DATEI.txt"
+which npm >/dev/null && npm ls -g > "$BACKUP_CONF_DIR/npm_ls-g.$HOST.$DATEI.txt"
 
 if [ "$LOGNAME" = "root" ]; then
     PATH="/sbin:$PATH"; export PATH

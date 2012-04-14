@@ -14,14 +14,14 @@ HOST="$( hostname )"
 [ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 [ -z "$BACKUP_FULL_KEEP_DAYS" ] && BACKUP_FULL_KEEP_DAYS=13
 
-if [ ! -e "$BACKUP_ETC" ]; then mkdir -p "$BACKUP_ETC"; fi
-if [ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ]; then exit 1; fi
+[ ! -e "$BACKUP_ETC" ] && mkdir -p "$BACKUP_ETC"
+[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && exit 1
 
 # allow disabling backups by touching a file
-if [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ]; then exit 0; fi
+[ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ] && exit 0
 
-if [ ! -e "$BACKUP_FULL_DIR" ]; then mkdir -p "$BACKUP_FULL_DIR"; fi
-if [ ! -w "$BACKUP_FULL_DIR" ]; then exit 1; fi
+[ ! -e "$BACKUP_FULL_DIR" ] && mkdir -p "$BACKUP_FULL_DIR"
+[ ! -w "$BACKUP_FULL_DIR" ] && exit 1
 
 # delete old backups 
 find "$BACKUP_FULL_DIR" -daystart -mtime +$BACKUP_FULL_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
@@ -47,9 +47,7 @@ if [ ${#DIRS[*]} = 0 ]; then
     DIRS=( "$HOME" )
 fi
 
-if [ ! -e "$BACKUP_ETC/exclude" ]; then
-    touch "$BACKUP_ETC/exclude"
-fi
+[ ! -e "$BACKUP_ETC/exclude" ] && touch "$BACKUP_ETC/exclude"
 
 nice tar --create \
     --file "$BACKUP_FULL_DIR/$HOST.$LOGNAME.$DATEI.tar.gz" \

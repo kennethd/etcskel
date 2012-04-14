@@ -14,14 +14,14 @@ HOST="$( hostname )"
 [ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 [ -z "$BACKUP_MYSQL_KEEP_DAYS" ] && BACKUP_MYSQL_KEEP_DAYS=3
 
-if [ ! -e "$BACKUP_ETC" ]; then mkdir -p "$BACKUP_ETC"; fi
-if [ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ]; then exit 1; fi
+[ ! -e "$BACKUP_ETC" ] && mkdir -p "$BACKUP_ETC"
+[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && exit 1
 
 # allow disabling backups by touching a file
-if [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ]; then exit 0; fi
+[ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ] && exit 0
 
-if [ ! -e "$BACKUP_MYSQL_DIR" ]; then mkdir -p "$BACKUP_MYSQL_DIR"; fi
-if [ ! -w "$BACKUP_MYSQL_DIR" ]; then exit 1; fi
+[ ! -e "$BACKUP_MYSQL_DIR" ] && mkdir -p "$BACKUP_MYSQL_DIR"
+[ ! -w "$BACKUP_MYSQL_DIR" ] && exit 1
 
 # delete old backups 
 find "$BACKUP_MYSQL_DIR" -daystart -mtime +$BACKUP_MYSQL_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f

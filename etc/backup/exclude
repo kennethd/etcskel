@@ -1,5 +1,4 @@
 */.adobe
-*/.balazar_brothers
 */.cache
 */.config
 */.cpan
@@ -25,11 +24,9 @@
 # .purple & .Skype may contain chat logs you want to keep
 */.purple
 */.Skype
-*/.sudoku
 */.thumbnails
 */.wine
 */.xine
-*/Downloads/*
 */Maildir/.IN-*
 */Maildir/.INCOMING/*
 */Maildir/.lists.*
@@ -38,5 +35,6 @@
 */backups/full/*
 */backups/weekly/*
 */downloads/*
+*/Downloads/*
 */lib/python/*
 */src/*
