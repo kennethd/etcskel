@@ -1,0 +1,76 @@
+Author: Kenneth Dombrowski <kenneth@ylayali.net>
+
+This file was installed with your user account to describe a few special
+features of accounts on this system.  
+
+====== BACKUPS ======
+
+The main feature provided is automatic backups.  My server isn't guaranteed to
+not die & when it does I would feel bad if I hadn't done everything I could to
+prevent my users from losing important data.  
+
+There are two equally important parts to a successful backup plan: creating the
+backup (done, as described below), and copying the backup to a remote host
+
+===== automatic backups =====
+
+The provided automatic backup scripts will not only backup your files, but also
+document the server environment: which packages are installed (along with their
+versions) for e.g. python, perl, and php libs
+
+The default location for backup storage is ~/backups:
+
+  fusetron@gilgamesh:~$ ls -l ~/backups/
+  drwxr-sr-x 2 fusetron fusetron    4096 Sep  2 00:12 conf
+  drwxr-sr-x 2 fusetron fusetron    4096 Sep  2 00:32 full
+
+===== rsync-backups ======
+
+If you have an internet-accessable host somewhere you can configure
+rsync-backups to take care of transferring your backups for you.
+
+If you do not already have another file server up & running somewhere, it will be
+up to you to copy the generated backups to another computer.
+
+TODO: instructions for setting up some free cloud service
+
+====== CRON ======
+
+One of the side benefits of the backup setup is a certain transparency wrt cronjobs
+
+====== UPGRADING ======
+
+You may want to update your setup periodically; a script is provided for you,
+but it will overwrite any files managed by this package, so be careful if you
+have made local modifications
+
+
+
+:r! find .  \( -name '*.pyc' -o -path '*.git/*' -o -name '*.swp' -o -name '*.swo' \) -prune -o -type f  -print
+
+    ./etc/backup/exclude
+    ./etc/defaults/crontab
+    ./cron.daily/backup
+    ./cron.daily/logrotate
+    ./README
+    ./bin/backup-mysql
+    ./bin/system-info
+    ./bin/reset-crontab
+    ./bin/reset-skel
+    ./bin/backup-full
+    ./bin/backup-incremental
+    ./bin/run-parts
+    ./bin/backup-conf
+    ./var/lib/logrotate/status
+    ./var/log/.hello
+
+some files should be flagged as NEVEROVERWRITE:
+
+    ./.bashrc
+    ./.pythonstartup
+    ./.bash_logout
+    ./.profile
+    ./.vimrc
+
+
+
