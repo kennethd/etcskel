@@ -1,40 +1,10 @@
-*/.adobe
-*/.cache
-*/.config
+# we want to backup ~/backups/conf, but exclude backing up previous filesystem backups
 */.cpan
-# remove if you use evolution to read mail
-*/.evolution
-*/.gconf
-*/.gimp
-*/.gimp-2*
-*/.gnome
-*/.gnome2
-*/.googleearth
-*/.gPlanarity
-*/.java
-*/.kde
-*/.local
-*/.macromedia
-*/.metacity
-# are you ok with losing all bookmarks & browser history? (chrome puts data in .config)
-*/.mozilla
-*/.nautilus
-*/.openoffice*
-*/.opera
-# .purple & .Skype may contain chat logs you want to keep
-*/.purple
-*/.Skype
-*/.thumbnails
-*/.wine
-*/.xine
-*/Maildir/.IN-*
-*/Maildir/.INCOMING/*
-*/Maildir/.lists.*
-*/Maildir/.spam-*
-*/backups/daily/*
-*/backups/full/*
-*/backups/weekly/*
-*/downloads/*
-*/Downloads/*
-*/lib/python/*
-*/src/*
+*/backups/daily
+*/backups/full
+*/backups/kenneth
+*/backups/lost+found
+*/backups/media
+*/backups/mysql
+*/backups/restore
+*/backups/weekly
