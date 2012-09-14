@@ -1,0 +1,5 @@
+#!/bin/bash
+# uses ~/bin/etcskel-checkversion to see if we are up to date, if not outputs
+# message advising upgrade to STDOUT which cron should then convey to owner
+exit $( "$HOME/bin/etcskel-checkversion" )
+
