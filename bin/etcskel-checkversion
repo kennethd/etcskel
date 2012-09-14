@@ -1,5 +1,5 @@
 #!/bin/bash
-# exits successfully if etcskel is up to date, unsuccessfully if not
+# exits successfully if etcskel is up to date, unsuccessfully with error message if not
 ###set -x
 # requires anonymous web interface to repo via gitweb
 ###ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel-version;hb=HEAD}"
@@ -11,5 +11,5 @@ REMOTE_VERSION=$( curl --silent -L "$ETCSKEL_VERSION_URL" )
 [ -r "$HOME/etc/etcskel-version" ] && LOCAL_VERSION=$( cat "$HOME/etc/etcskel-version" ) || LOCAL_VERSION="1970-01-01"
 REMOTE_DATE=$( date -d "$REMOTE_VERSION" '+%s' )
 LOCAL_DATE=$( date -d "$LOCAL_VERSION" '+%s' )
-[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0 || exit 1
+[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0 || echo "remote version $REMOTE_VERSION > local version $LOCAL_VERSION. please run etcskel-upgrade" >&2 && exit 1
 
