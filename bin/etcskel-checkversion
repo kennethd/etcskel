@@ -9,9 +9,7 @@ ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/etcskel-versi
 # -L causes curl to follow 3%% redirects
 REMOTE_VERSION=$( curl --silent -L "$ETCSKEL_VERSION_URL" )
 [ -r "$HOME/etc/etcskel-version" ] && LOCAL_VERSION=$( cat "$HOME/etc/etcskel-version" ) || LOCAL_VERSION="1970-01-01"
-REMOTE_DATE=$(date -d "$REMOTE_VERSION" '+%s')
-LOCAL_DATE=$(date -d "$LOCAL_VERSION" '+%s')
-#echo REMOTE VERSION: $REMOTE_VERSION REMOTE DATE: $REMOTE_DATE
-#echo LOCAL VERSION: $LOCAL_VERSION LOCAL DATE: $LOCAL_DATE
-[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 1 || exit 0
+REMOTE_DATE=$( date -d "$REMOTE_VERSION" '+%s' )
+LOCAL_DATE=$( date -d "$LOCAL_VERSION" '+%s' )
+[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0 || exit 1
 
