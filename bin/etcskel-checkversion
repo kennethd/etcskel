@@ -3,9 +3,9 @@
 ###set -x
 [ -r "$HOME/etc/etcskel/config" ] && . "$HOME/etc/etcskel/config"
 # requires anonymous web interface to repo via gitweb
-###ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel-version;hb=HEAD}"
+###ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel/version;hb=HEAD}"
 # use apache redirect to provide cleaner URL & hide reliance on gitweb specific args:
-#   Redirect 302 /etcskel-version /?p=etcskel.git;a=blob_plain;f=etc/etcskel-version;hb=HEAD
+#   Redirect 302 /etcskel-version http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel/version;hb=HEAD
 # if you override ETCSKEL_VERSION_URL you probably also want to override ETCSKEL_REMOTE_URL
 ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/etcskel-version}"
 # -L causes curl to follow 3%% redirects
