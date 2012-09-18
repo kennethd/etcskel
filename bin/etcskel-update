@@ -47,14 +47,11 @@ do
             then
                 echo "$0: skipping $FILE [protected, unchanged]" >&2
             else
-                echo "" >&2
-                echo "$0: $FILE has changed, but you will not be updated" >&2
-                echo "$0: a diff of the changes will follow for your review" >&2
-                echo "$0: if you want to accept the changes, move your local" >&2
-                echo "$0: copy out of the way & rerun $0" >&2
-                echo "" >&2
-                diff -c "./$FILE" "$HOME/$FILE" >&2
-                echo "" >&2
+                echo "$0: diff $FILE [protected, changed] NOT UPDATED" >&2
+                # send diffs to STDOUT, let STDERR be redirected to a log somewhere
+                echo ""
+                diff -c "./$FILE" "$HOME/$FILE"
+                echo ""
             fi
         fi
     else
