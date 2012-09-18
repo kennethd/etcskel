@@ -1,15 +1,16 @@
 #!/bin/bash
-set -x
+##set -x
 [ -r "$HOME/etc/etcskel/config" ] && . "$HOME/etc/etcskel/config"
 ETCSKEL_REMOTE_URL="${ETCSKEL_REMOTE_URL:-git://git.ylayali.net/etcskel.git}"
 
 EXPORT_DIR=$( mktemp -d )
 trap 'rm -rf "$EXPORT_DIR"' EXIT
 
-git archive --remote="$ETCSKEL_REMOTE_URL" HEAD --format=tar | tar -C "$EXPORT_DIR" -xvf -
+git archive --remote="$ETCSKEL_REMOTE_URL" HEAD --format=tar | tar -C "$EXPORT_DIR" -xf -
 [ $? -ne 0 ] && exit $?
 
 cd "$EXPORT_DIR"
+# TODO: test with filename containing spaces
 IFS='
 '
 FILES=$( find . -type f -print )
@@ -22,9 +23,9 @@ then
     [ $? -ne 0 ] && exit $?
 fi
 TARFILE="$ETCSKEL_BACKUP_DIR/etcskel-update-` date -I `.$$.tar.gz"
-# TODO: verify this does indeed grab files from $HOME & not $EXPORT_DIR
-# TODO: verify this does not fail when some files do not exist in $HOME
-tar -C "$HOME" -czf "$TARFILE" ${FILES[@]}
+# -C tells tar to cd before executing so we grab files from $HOME & not $EXPORT_DIR
+# --ignore-failed-read does not fail when some files do not exist in $HOME
+tar -C "$HOME" --ignore-failed-read -czf "$TARFILE" ${FILES[@]}
 [ $? -ne 0 ] && exit $?
 # success, delete old backups
 find "$ETCSKEL_BACKUP_DIR" -daystart -mtime +5 -type f -print0 | xargs -r -0 rm -f
@@ -36,14 +37,28 @@ do
     # DO NOT OVERWRITE files listed in no-overwrite UNLESS file does not
     # already exist on disk.  This is useful when installing things like
     # var/lib/logrotate/status which we will be passing control of to other
-    # packages 
-    if grep -c "^$FILE\$" "$HOME/etc/etcskel/no-overwrite" 2>&1 >/dev/null \
-        && test -e "$HOME/$FILE"
+    # packages, and also provides mechanism to force update (via rm,mv,etc) 
+    if grep -c "^$FILE\$" "$HOME/etc/etcskel/no-overwrite" 2>&1 >/dev/null && test -e "$HOME/$FILE"
     then
-        [ "" != "$ETCSKEL_UPDATE_VERBOSE" ] && echo not writing: $FILE >&2
         # if verbose show a diff of the two versions, if different
+        if [ "" != "$ETCSKEL_UPDATE_VERBOSE" ]
+        then
+            if diff -q "./$FILE" "$HOME/$FILE" 2>&1 >/dev/null
+            then
+                echo "$0: skipping $FILE [protected, unchanged]" >&2
+            else
+                echo "" >&2
+                echo "$0: $FILE has changed, but you will not be updated" >&2
+                echo "$0: a diff of the changes will follow for your review" >&2
+                echo "$0: if you want to accept the changes, move your local" >&2
+                echo "$0: copy out of the way & rerun $0" >&2
+                echo "" >&2
+                diff -c "./$FILE" "$HOME/$FILE" >&2
+                echo "" >&2
+            fi
+        fi
     else
-        [ "" != "$ETCSKEL_UPDATE_VERBOSE" ] && echo writing: $FILE >&2
+        [ "" != "$ETCSKEL_UPDATE_VERBOSE" ] && echo "$0: writing $FILE" >&2
         # if $FILE contains any path info, make sure directories exist
         RELPATH="${FILE%/*}"
         if [ "$FILE" != "$RELPATH" ]
