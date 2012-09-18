@@ -1,0 +1,14 @@
+# $HOME/etc/etcskel/config
+# This is a bash script which will be sourced into the environment of running
+# scripts.  Everything is commented out, providing only a list of options &
+# their default values.  
+
+# If you want to switch to a different upstream fork, edit the following URLs.
+#
+# ETCSKEL_VERSION_URL serves up the contents of ~/etc/etcskel/version, a date
+# string in YYYY-MM-DD format, to be compmared to the local copy of that file
+#ETCSKEL_VERSION_URL="http://git.ylayali.net/etcskel-version"
+#
+# ETCSKEL_REMOTE_URL is an anonymous upload-archive friendly URL
+#ETCSKEL_REMOTE_URL="git://git.ylayali.net/etcskel.git"
+
