@@ -17,5 +17,12 @@
 #ETCSKEL_BACKUP_DIR="$HOME/backups/etcskel"
 
 # Set to anything but the NULL string to see info messages about what is being
-# written
+# written.  A status line for each file will be written to STDERR, and for any
+# files not being updated, but for which changes exist, a context diff is 
+# written to STDOUT.  This allows you to run the script like: 
+#
+#   $ etcskel-update >/tmp/my-etcskel-update.diff
+#
+# to see an overview of what happened, and gives you a diff file to investigate
+# further
 #ETCSKEL_UPDATE_VERBOSE=
