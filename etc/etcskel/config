@@ -12,3 +12,10 @@
 # ETCSKEL_REMOTE_URL is an anonymous upload-archive friendly URL
 #ETCSKEL_REMOTE_URL="git://git.ylayali.net/etcskel.git"
 
+# etcskel-update will always create a local backup of files potentially about
+# to be overwritten
+#ETCSKEL_BACKUP_DIR="$HOME/backups/etcskel"
+
+# Set to anything but the NULL string to see info messages about what is being
+# written
+#ETCSKEL_UPDATE_VERBOSE=

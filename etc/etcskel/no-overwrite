@@ -1,0 +1,15 @@
+# list of files installed by etcskel which should never be overwritten by updates.
+# to force an update, move your current version out of the way & run etcskel-update.
+.bash_logout
+.bash_profile
+.bashrc
+.gitignore
+.profile
+.pythonstartup
+.vimrc
+# config files for this package
+etc/backup/exclude
+etc/etcskel/config
+###etc/etcskel/no-overwrite
+# once installed, will be managed by logrotate
+var/lib/logrotate/status
