@@ -1,16 +1,36 @@
-Author: Kenneth Dombrowski <kenneth@ylayali.net>
 
 This file was installed with your user account to describe a few special
 features of accounts on this system.  
 
+The package which installed these files may be browsed online @
+http://git.ylayali.net/?p=etcskel.git
+
+====== LICENSE ======
+
+Copyright 2012 Kenneth Dombrowski <kenneth@ylayali.net>
+
+Scripts included in this package are licened under the Apache 2.0 license,
+configuration files and documentation are public domain.
+
+====== DOTFILES ======
+
+True to its ''/etc/skel'' origins, a number of //dotfiles// are installed the
+first time the upgrade script is run, or when the account is created if it is
+indeed created from ''/etc/skel'', including a reasonable ''~/.bashrc'',
+''.vimrc'', ''.bash_logout'', & etc...
+
+These files are expected to be updated by most active users and the upgrade
+script will never overwrite them once installed.
+
 ====== BACKUPS ======
 
-The main feature provided is automatic backups.  My server isn't guaranteed to
-not die & when it does I would feel bad if I hadn't done everything I could to
-prevent my users from losing important data.  
+The main feature provided is automatic backups.  Installing my homegrown
+backup scripts for all user accounts, and maintaing them after upgrades, is
+the raison d'etre for this package.
 
 There are two equally important parts to a successful backup plan: creating the
-backup (done, as described below), and copying the backup to a remote host
+backup (done, as described below), and copying the backup to a remote host,
+which with some configuration, helper scripts will also take care of for you.
 
 ===== automatic backups =====
 
@@ -24,7 +44,24 @@ The default location for backup storage is ~/backups:
   drwxr-sr-x 2 fusetron fusetron    4096 Sep  2 00:12 conf
   drwxr-sr-x 2 fusetron fusetron    4096 Sep  2 00:32 full
 
+===== backup strategies =====
+
+The scripts support two backup strategies:
+
+  * full backup daily
+  * full backup weekly + incremental backup daily
+
+The default configuration will perform a full backup daily, if you have a
+lot of files resulting in cumbersome large files, you may want to switch to
+the incremental plan; you will still get the huge complete backup on Sundays,
+but all other days will produce a backup consisting only of files which
+changed since the previous Sunday (so restoring will usually require two
+files, first extracting the backup from the previous Sunday, then extracting
+the most recent backup on top of it)
+
 ===== rsync-backups ======
+
+TODO: rsync-backups is not yet upgraded for the new version
 
 If you have an internet-accessable host somewhere you can configure
 rsync-backups to take care of transferring your backups for you.
@@ -36,41 +73,111 @@ TODO: instructions for setting up some free cloud service
 
 ====== CRON ======
 
-One of the side benefits of the backup setup is a certain transparency wrt cronjobs
+One of the side benefits of the backup setup is a certain transparency wrt
+cronjobs.  The default crontab is based on vixie cron's special timespec
+strings: @daily, @weekly, @hourly, etc & an included script called ''run-parts''
+which will execute all scripts within the associated directory.
+
+Your crontab (try `crontab -l`) should look something like this:
+
+<code bash>
+    # any scripts in these directories will be run at the appropriate time
+    @reboot   [ -d "$HOME/cron.reboot"  ] && /bin/run-parts $HOME/cron.reboot
+    @hourly   [ -d "$HOME/cron.hourly"  ] && /bin/run-parts $HOME/cron.hourly
+    @daily    [ -d "$HOME/cron.daily"   ] && /bin/run-parts $HOME/cron.daily
+    @weekly   [ -d "$HOME/cron.weekly"  ] && /bin/run-parts $HOME/cron.weekly
+    @monthly  [ -d "$HOME/cron.monthly" ] && /bin/run-parts $HOME/cron.monthly
+    @yearly   [ -d "$HOME/cron.yearly"  ] && /bin/run-parts $HOME/cron.yearly
+</code>
+
+Your ''~/cron.daily'' directory probably contains scripts for **backup**,
+**logrotate**, and **webalizer**, but you can drop your own scripts in there too
+
+You can (and should) edit your crontab by issuing the command ''crontab -e'', 
+look for a line like:
+
+<code bash>
+  #MAILTO=you@example.com
+</code>
+
+uncomment it & change the address to point to your webmaster so it looks like:
+
+<code bash>
+  MAILTO=somebody@yourdomain.com
+</code>
+
+If you ever mess up your crontab too badly & want to start over, run the
+command ''reset-crontab''
+
+===== creating a cron script =====
+
+Ideally cron scripts are simple invocations of other programs; some of the
+etcskel backup scripts are generally poor models to follow because they jump
+through hoops to use ''at'' to stagger invocations of io-intensive scripts (so
+everyone's backups don't kick off at the same time, overwhelming the disk io).
+If your script is disk-intensive, please do use use similar techniques to avoid
+your script running at the top of the hour, but in general you will want to 
+keep things as simple as can be, for example: 
+
+The ''ylayali'' user makes use of a wiki package called ''dokuwiki'', and a
+dokuwiki plugin to bring in the latest **xkcd** comic, but the plugin doesn't
+invalidate the cached copy of the page it is included on so a cron script
+invalidates the page's cache by updating the page's timestamp once a day:
+
+<file bash>
+#!/bin/sh
+# update the timestamp of the front page to prevent caching xkcd for too long
+touch /vhost/ylayali.net/var/dokuwiki-data/pages/start.txt
+</file>
+
+Just drop the script in your ''cron.daily'' directory, and it will run at
+midnight every day.  You can name the script anything, but it should be
+executable & include a shebang line pointing to its intended interpreter.
+
+The regular UNIX environment is pretty restricted when scripts are run by cron,
+often scripts that work fine from your login shell will fail due to $PATH
+differences & the like, check out ''man 5 crontab'' if you run into problems.
 
 ====== UPGRADING ======
 
-You may want to update your setup periodically; a script is provided for you,
-but it will overwrite any files managed by this package, so be careful if you
-have made local modifications
+One of the installed ''cron.weekly'' scripts will compare your version of the
+etcskel version with that of the upstream developers, and send you an email if
+you are out of date.
 
+If you receive such an email and want to upgrade, a script is provided for
+you.  You should be aware of its configuration though, if you have made local
+modifications to any files distributed by this package, your changes may be
+overwritten.
 
+If you want to maintain your own copy of any of the files distributed by
+etcskel, you can prevent them being upgraded by listing them in the config file
+''~/etc/etcskel/no-overwrite''
 
-:r! find .  \( -name '*.pyc' -o -path '*.git/*' -o -name '*.swp' -o -name '*.swo' \) -prune -o -type f  -print
+If you set ETCSKEL_UPDATE_VERBOSE=yes in ''~/etc/etcskel/config'', the upgrade
+script will output a status for each file in the package indicating whether it
+will be overwritten or skipped, and a diff of any files mentioned in
+''~/etc/etcskel/no-overwrite'' if your copy is different from the repo version.
+Status messages go to STDERR and diffs to STDOUT, so you can do:
 
-    ./etc/backup/exclude
-    ./etc/defaults/crontab
-    ./cron.daily/backup
-    ./cron.daily/logrotate
-    ./README
-    ./bin/backup-mysql
-    ./bin/system-info
-    ./bin/reset-crontab
-    ./bin/reset-skel
-    ./bin/backup-full
-    ./bin/backup-incremental
-    ./bin/run-parts
-    ./bin/backup-conf
-    ./var/lib/logrotate/status
-    ./var/log/.hello
+  $ etcskel-update >/tmp/my-etcskel-update.diff
 
-some files should be flagged as NEVEROVERWRITE:
+to see the status output on your console, and then investigate the file
+''/tmp/my-etcskel-update.diff'' to review the differences in your locally
+managed files.
 
-    ./.bashrc
-    ./.pythonstartup
-    ./.bash_logout
-    ./.profile
-    ./.vimrc
+In any case, a backup is created every time you run the script, so there should
+always be a path for recovery (even if the upgrade script itself gets broken you
+always have your daily backups to fall back to)
 
+====== EDITING ======
 
+This section is for developers working on the etcskel files themselves
+
+A handy command to open all files in the project is:
+
+  vim `find . \( -name '*.pyc' -o -path '*.git/*' -o -name '*.swp' -o -name '*.swo' \) -prune -o -type f -print`
+
+or, due to 'test file with spaces', you might try the following, but it may mess with your terminal
+
+  find . \( -name '*.pyc' -o -path '*.git/*' -o -name '*.swp' -o -name '*.swo' \) -prune -o -type f -print0 | xargs -0 vim
 
