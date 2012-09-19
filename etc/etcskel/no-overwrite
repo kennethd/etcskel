@@ -10,6 +10,8 @@
 # config files for this package
 etc/backup/exclude
 etc/etcskel/config
+# if there is a reason you want to exclude this file, you may want to bring it
+# up with the developer @ kenneth@ylayali.net
 ###etc/etcskel/no-overwrite
 # once installed, will be managed by logrotate
 var/lib/logrotate/status
