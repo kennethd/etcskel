@@ -18,15 +18,5 @@ syntax on               " use syntax highlighting for known filetypes
 set number              " display line numbers on left side of screen when editing
 set showmatch           " hilight matching brace/bracket while editing
 set showcmd             " show (partial) command in the last line of the screen
-"" personal preferences
 set bg=dark             " use dark colors
-colorscheme darkblue 
-"set viminfo='20,<50,s10,h,%
-"filetype plugin on
-"" load custom file type plugins 
-"autocmd BufRead,BufNewFile *.py set filetype=python
-"autocmd BufRead,BufNewFile *.php set filetype=php
-"autocmd BufRead,BufNewFile *.phps set filetype=php
-"" on gvim systems, no menubar, no toolbar, no scrollbars
-"set guioptions-=mTrRlLb
-
+set tw=78               " textwidth (column to wrap text)
