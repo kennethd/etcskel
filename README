@@ -3,7 +3,13 @@ This file was installed with your user account to describe a few special
 features of accounts on this system.  
 
 The package which installed these files may be browsed online @
-http://git.ylayali.net/?p=etcskel.git
+http://git.ylayali.net/?p=etcskel.git or checked out locally via 
+
+  $ git clone git://git.ylayali.net/etcskel.git
+
+If you want to report a bug in this package, please send an email to
+shellutils@ylayali.net, or use the web interface at 
+http://rt.ylayali.net/Ticket/Create.html?Queue=12
 
 ====== LICENSE ======
 
