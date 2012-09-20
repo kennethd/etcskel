@@ -25,8 +25,8 @@ script will never overwrite them once installed.
 ====== BACKUPS ======
 
 The main feature provided is automatic backups.  Installing my homegrown
-backup scripts for all user accounts, and maintaing them after upgrades, is
-the raison d'etre for this package.
+backup scripts for all user accounts, and having to maintain them across a
+dozen accounts after upgrades, is the raison d'etre for this package.
 
 There are two equally important parts to a successful backup plan: creating the
 backup (done, as described below), and copying the backup to a remote host,
@@ -57,7 +57,7 @@ the incremental plan; you will still get the huge complete backup on Sundays,
 but all other days will produce a backup consisting only of files which
 changed since the previous Sunday (so restoring will usually require two
 files, first extracting the backup from the previous Sunday, then extracting
-the most recent backup on top of it)
+the most recent backup on top of it).  See ''~/etc/backup/config''
 
 ===== sync to dropbox =====
 
@@ -66,7 +66,9 @@ from any of your computers or dropbox-enabled devices.  It is free for up to 2GB
 
 If you don't have one already, create a dropbox account.  You will have to
 authorize etcskel-backups to upload files on your behalf.  You only have to do
-this once.
+this once.  If you are setting up a new dropbox account, feel free to accept
+an invitation from me @ http://db.tt/NvvJZEIC (we will both get some extra
+storage)
 
 At your user shell, run ''etcskel-dropbox-term'' and type ''login'':
 
@@ -83,7 +85,8 @@ directory configured to be backed up in the file
 ''~/etc/etcskel/dropbox-sync-dirs'' will now be synced daily.
 
 ''etcskel-dropbox-term'' is actually a full featured CLI client, you can use
-it to interact with your dropbox folder from the command line.
+it to interact with your dropbox folder from the command line, type ''help''
+at the prompt for a list of commands.
 
 Remember to consider the data you are sending to a third party, if you have
 sensitive third-party data in your database dumps, for example, you may want
@@ -98,8 +101,6 @@ rsync-backups to take care of transferring your backups for you.
 
 If you do not already have another file server up & running somewhere, it will be
 up to you to copy the generated backups to another computer.
-
-TODO: instructions for setting up some free cloud service
 
 ====== CRON ======
 
