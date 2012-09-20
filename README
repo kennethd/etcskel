@@ -85,6 +85,10 @@ directory configured to be backed up in the file
 ''etcskel-dropbox-term'' is actually a full featured CLI client, you can use
 it to interact with your dropbox folder from the command line.
 
+Remember to consider the data you are sending to a third party, if you have
+sensitive third-party data in your database dumps, for example, you may want
+to consider using rsync-backups to a private server instead.
+
 ===== rsync-backups ======
 
 TODO: rsync-backups is not yet upgraded for the new version
