@@ -2,6 +2,7 @@
 
 import getpass
 import os
+import pprint
 import socket
 import sys
 
@@ -12,6 +13,7 @@ APP_SECRET = 'hkmmuwgrxrfo0gn' # etcskel-backups secret
 ACCESS_TYPE = 'app_folder'  # should be 'dropbox' or 'app_folder' as configured for your app
 TOKEN_FILE = os.path.expanduser('~/.etcskel-backups.dropbox.token')
 BACKUP_DIR_LIST = os.path.expanduser('~/etc/etcskel/dropbox-sync-dirs')
+CHUNK_THRESHHOLD = 20 * 1024 * 1024 # files > 20mb will use chunked upload
 
 def command(login_required=True):
     """a decorator for handling authentication and exceptions"""
@@ -140,7 +142,26 @@ class Dropbox():
         Dropbox> put ~/test.txt dropbox-copy-test.txt
         """
         from_file = open(os.path.expanduser(from_path), "rb")
-        self.api_client.put_file(self.current_path + "/" + to_path, from_file)
+        try:
+            file_size = os.path.getsize(from_path)
+        except OSError as ex:
+            print >> sys.stderr , 'Error: ', str(ex)
+            return False
+
+        if file_size < CHUNK_THRESHHOLD:
+            self.api_client.put_file(self.current_path + "/" + to_path, from_file)
+        else:
+            uploader = self.api_client.get_chunked_uploader(from_file, file_size)
+            print >> sys.stderr , "uploading: ", from_file, file_size
+            while uploader.offset < file_size:
+                try:
+                    upload = uploader.upload_chunked()
+                except rest.ErrorResponse, e:
+                    # TODO: perform error handling and retry logic
+                    print >> sys.stderr , 'Error uploading chunked file', from_path
+                    return False
+            uploader.finish(self.current_path + "/" + to_path)
+        return True
 
     @command()
     def do_search(self, string):
@@ -211,6 +232,7 @@ if __name__ == '__main__':
     dropbox.do_cd(my_hostname)
 
     for backup_dir in backup_dirs:
+        print >> sys.stderr , 'sync', backup_dir
         remote_dir = backup_dir.replace('/', '-').lstrip('-')
 
         try:
@@ -225,15 +247,18 @@ if __name__ == '__main__':
 
         local_files = set(os.listdir(backup_dir))
         remote_files = set(dropbox.do_ls())
+
         # remove remote files that no longer exist on disk here
         rm_files = remote_files.difference(local_files)
         for rm_file in rm_files:
+            print >> sys.stderr , 'rm', rm_file
             dropbox.do_rm(rm_file)
         # upload local files that do not exist remotely
         put_files = local_files.difference(remote_files)
         # TODO: large files fail with error
         # dropbox.rest.RESTSocketError: Error connecting to "api-content.dropbox.com": [Errno 32] Broken pipe 
         for put_file in put_files:
+            print >> sys.stderr , 'put', put_file
             dropbox.do_put(os.path.sep.join([backup_dir, put_file]), put_file)
         dropbox.do_cd('..')
 
