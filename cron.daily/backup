@@ -1,12 +1,7 @@
 #!/bin/bash
 # vary minute (1-9) to avoid all users' backups from kicking off @ the same time
 RANGE=9; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 1";
-
-# If you want to enable incremental backups (opposed to full backups daily)
-# change the value of FULL_BACKUP_DAILY to anything but "yes"
-FULL_BACKUP_DAILY=yes
-# If you are having filespace issues due to too many backups being stored for 
-# too long, take note too of the 'export BACKUP_FULL_KEEP_DAYS' syntax below
+[ -r "$HOME/etc/backup/config" ] && source "$HOME/etc/backup/config"
 
 at 00:1$MIN >/dev/null 2>&1 <<-EOQ
 "$HOME/bin/backup-conf" 2>/dev/null
@@ -16,8 +11,6 @@ EOQ
 # within <<-HEREDOC leading tabs are ignored, but NOT leading spaces
 if [ "$FULL_BACKUP_DAILY" = "yes" ]; then
 	at 00:3$MIN >/dev/null 2>&1 <<-EOQ
-	# reduce number of backups to keep
-	export BACKUP_FULL_KEEP_DAYS=5
 	"$HOME/bin/backup-full" 2>/dev/null
 	EOQ
 else

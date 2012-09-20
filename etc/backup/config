@@ -1,0 +1,11 @@
+
+# If you want to enable incremental backups (opposed to full backups daily)
+# change the value of FULL_BACKUP_DAILY to anything but "yes"
+#FULL_BACKUP_DAILY=yes
+
+# If you are having filespace issues due to too many backups being stored for
+# too long you can lower these values to more aggressively remove old files
+#BACKUP_FULL_KEEP_DAYS=3
+#BACKUP_INCR_KEEP_DAYS=3
+#BACKUP_CONF_KEEP_DAYS=3
+

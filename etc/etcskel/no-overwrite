@@ -1,5 +1,6 @@
 # list of files installed by etcskel which should never be overwritten by updates.
 # to force an update, move your current version out of the way & run etcskel-update.
+# all entries must be relative to your $HOME directory.
 .bash_logout
 .bash_profile
 .bashrc
@@ -9,6 +10,7 @@
 .vimrc
 # config files for this package
 etc/backup/exclude
+etc/backup/config
 etc/etcskel/config
 etc/etcskel/dropbox-sync-dirs
 # if there is a reason you want to exclude this file, you may want to bring it
