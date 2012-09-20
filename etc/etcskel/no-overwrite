@@ -10,6 +10,7 @@
 # config files for this package
 etc/backup/exclude
 etc/etcskel/config
+etc/etcskel/dropbox-sync-dirs
 # if there is a reason you want to exclude this file, you may want to bring it
 # up with the developer @ kenneth@ylayali.net
 ###etc/etcskel/no-overwrite

@@ -1,0 +1,7 @@
+# you can specify directories by /full/path, relative/to/your/home, or with ~/tilde/home/expansion
+# only directories which exist will be synced
+~/backups/conf
+~/backups/full
+~/backups/daily
+~/backups/mysql
+~/backups/postgres
