@@ -174,6 +174,7 @@ if __name__ == '__main__':
             pass
     except IOError as ex:
         print >> sys.stderr , 'Error: %s' % (str(ex),)
+        print >> sys.stderr , "Please run 'etcskel-dropbox-term' and 'login' to grant access to your dropbox"
         sys.exit(0)
 
     backup_dirs = []
