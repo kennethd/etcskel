@@ -187,7 +187,6 @@ if __name__ == '__main__':
 
     for dir_spec in dir_specs:
         dir_spec = dir_spec.strip()
-        print 'trying ', dir_spec
         if os.path.isdir(dir_spec):
             backup_dirs.append(dir_spec)
         elif os.path.isdir(os.path.expanduser(dir_spec)):
@@ -195,12 +194,10 @@ if __name__ == '__main__':
         elif os.path.isdir(os.path.expanduser('~' + dir_spec)):
             backup_dirs.append(os.path.expanduser('~' + dir_spec))
 
-    from pprint import pprint ; print 'backup_dirs:' ; pprint(backup_dirs)
-
     dropbox = Dropbox(APP_KEY, APP_SECRET)
-    my_hostname = socket.gethostname()
 
     # each host using etcskel-backups manages its own directory
+    my_hostname = socket.gethostname()
     try:
         ret = dropbox.do_mkdir(my_hostname)
     except rest.ErrorResponse, ex:
@@ -213,14 +210,12 @@ if __name__ == '__main__':
     dropbox.do_cd(my_hostname)
 
     for backup_dir in backup_dirs:
-        print 'backup_dir : ' , backup_dir
         remote_dir = backup_dir.replace('/', '-').lstrip('-')
 
         try:
             ret = dropbox.do_mkdir(remote_dir)
         except rest.ErrorResponse, ex:
             if ex.status == 403:
-                # 'The folder already exists.'
                 pass
             else:
                 print >> sys.stderr , 'Error: ', str(ex)
