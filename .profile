@@ -7,3 +7,5 @@
 [ -d "$HOME/bin" ] && [ "$PATH" == "${PATH##$HOME/bin}" ] && export PATH="$HOME/bin:$PATH"
 [ -f "$HOME/.keychainrc" ] && . "$HOME/.keychainrc"
 
+# on some systems pinentry will not be able to prompt you without this
+export GPG_TTY=tty
