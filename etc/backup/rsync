@@ -1,0 +1,63 @@
+
+# rsync-backups relies on ssh keys and ssh-agent to authenticate. 
+# there is helper script to set up your authentication; run 
+#    $ rsync-backup-auth-setup
+
+# Uncomment the following line if you want to enable the daily cron job.
+# If not enabled, the script will simple exit successfully (and silently)
+#RSYNC_BACKUPS_ENABLED=yes
+
+# REQUIRED.  The host you will be sending your backups to
+RSYNC_BACKUPS_HOST=""
+
+# REQUIRED.  The remote user account
+RSYNC_BACKUPS_USER=""
+
+# REQUIRED.  The remote path 
+RSYNC_BACKUPS_PATH=""
+
+# You can specify the public key to use here, though the default is highly
+# recommended. It is mostly listed here for transparency. rsync-backups-auth-setup
+# creates a dedicated keypair & loads it into ssh-agent for you so running 
+# `rsync-backups-auth-setup reset` will not interfere with any of your other
+# keys.
+RSYNC_BACKUPS_PUBKEY="~/.ssh/rsync-backups.id_rsa.pub"
+
+# Be careful editing the following options.  The default should be good for
+# all ordinary users.  Particularly if you are only copying the tar archives
+# and text files normally found in ~/backups
+#
+#   -q    quiet.  suppress non-error messages
+#   -l    preserve symlinks
+#   -p    preserve permissions
+#   -t    preserve times
+#   -g    preserve group ownership (group ids may not be the same on remote
+#         system, but useful for restoring archive on original system)
+#   -E    preserve execute bit
+#   -X    preserve extended attributes (probably unnecessary)
+#   -m    prune empty directories
+#   --delete remove remote files no longer on local filesystem
+#   --delete-excluded remove remote files that match excludes
+#   --exclude-from file listing path specs you do NOT want to copy
+#
+# automatically added options.  these options are hardcoded in the script &
+# cannot be overridden by this config value:
+#
+#   -r    recursive.  it doesn't make sense to not use this
+#   -x    do not follow links to other filesystems
+#   --partial-dir keep partially transferred files in specified dir.
+#         partial files can be used when re-trying
+#   --bwlimit bandwidth throttle in KB per second
+#
+# the ~/backups path is also hardcoded into the script, do note that rsync
+# will follow symlinks though.  it is recommended if you add stuff to
+# ~/backups (physically or via symlinks) you probably want to steer clear of
+# the backup scripts-managed directories 'full', 'conf', 'daily', 'mysql', etc
+#
+# some notable options which are not included:
+#
+#   -o    preserve user ownership (requires root if you are not the owner)
+#         $RSYNC_BACKUPS_USER will be the owner on the remote filesystem
+#   --numeric-ids don't map uid/gid values by user/group name
+#         TODO: does this mean without this option my comment for -g is wrong?
+RSYNC_OPTIONS="-qlptgEXm --delete --delete-excluded --exclude-from=~/etc/backup/rsync-exclude"

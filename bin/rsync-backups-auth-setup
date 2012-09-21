@@ -1,0 +1,234 @@
+#!/bin/bash
+# Copyright 2012 Kenneth Dombrowski <kenneth@ylayali.net>
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#    http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+set -x
+die() { echo "$0: $*" >&2 ; exit 1 ; }
+info() { echo "$*" >&2 ; }
+[ -r "$HOME/etc/backup/rsync" ] && source "$HOME/etc/backup/rsync"
+# we want to be able to run this script even RSYNC_BACKUPS_ENABLED is false
+[ "" = "$RSYNC_BACKUPS_HOST" ] && die "RSYNC_BACKUPS_HOST is required"
+[ "" = "$RSYNC_BACKUPS_USER" ] && die "RSYNC_BACKUPS_USER is required"
+[ "" = "$RSYNC_BACKUPS_PUBKEY" ] && die "RSYNC_BACKUPS_PUBKEY is required"
+RSYNC_BACKUPS_PRIVKEY="${RSYNC_BACKUPS_PUBKEY%%.pub}"
+
+askpass()
+# turn off echoing. ask for password or passphrase twice.
+# compare & re-prompt if passwords are different or empty
+# use cmd subst to collect output:  NEW_PASS=$( getpass )
+{
+    # http://billharlan.com/pub/papers/Bourne_shell_idioms.html
+    # Here's how to ask for a password without echoing the characters.
+    # The trapping ensures that an interrupt does not leave echo off
+    stty -echo
+    trap "stty echo ; echo 'Interrupted' ; exit 1" 1 2 3 15
+    echo -n "Please enter a passphrase: "
+    read password1
+    echo "" # newline
+    echo -n "Please re-enter the passphrase: "
+    read password2
+    echo "" # newline
+    stty echo
+    # check for empty password
+    if [ -z "$password1" ]; then
+        echo "Error: Passphrase cannot be empty" >&2
+        getpass
+    elif [ "$password1" = "$password2" ]; then
+        echo "$password1"
+        return 0
+    else
+        echo "Error: Passphrases do not match" >&2
+        getpass
+    fi
+}
+
+yes_or_no()
+# prompt user for a y/n response
+{
+    local prompt="${1:-Continue}"
+    # `read -p` seems to have some problems over ssh... use `echo -n` && `read`
+    echo -n "$prompt? (y/n): "
+    read -n 1 yn # -n1 =~ only wait for one keypress
+    echo '' # newline
+    # to allow answers 'Yes' & 'No' as well, only examine the
+    # 1st character of the string returned
+    yn="${yn:0:1}"
+    if [ "$yn" = 'y' ] || [ "$yn" = 'Y' ]; then
+        return 0
+    elif [ "$yn" = 'n' ] || [ "$yn" = 'N' ]; then
+        return 1
+    else
+        echo "Please answer 'y' or 'n'" >&2
+        yes_or_no "$prompt"
+    fi
+}
+
+if [ "$1" = "test" ]
+then
+    # confirm ability to log in to remote host, exit with success/fail
+    ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "ls" 2>/dev/null
+    [ $? -ne 0 ] && die "failed to login to $RSYNC_BACKUPS_USER@$RSYNC_BACKUPS_HOST"
+    exit 0
+
+elif [ "$1" = "restart" ] || [ "$1" = "reset" ]
+then
+    # mv old key, unset SSH env vars, remove key from ssh-agent
+    info "Warning: This will destroy your current rsync-backups ssh key"
+    info "You will have to redistribute it to any other accounts you have shared it with"
+    info "Your other keys should not be effected"
+    yes_or_no || exit 1
+    # instead of resetting all of keychain's keys, just remove ours
+    ssh-add -d "$RSYNC_BACKUPS_PUBKEY" >/dev/null
+    SUFFIX="` date -I `.$$"
+    mv "$RSYNC_BACKUPS_PUBKEY" "$RSYNC_BACKUPS_PUBKEY.$SUFFIX"
+    [ $? -eq 0 ] && info "Your previous public key has been moved to '$RSYNC_BACKUPS_PUBKEY.$SUFFIX'"
+    mv "$RSYNC_BACKUPS_PRIVKEY" "$RSYNC_BACKUPS_PRIVKEY.$SUFFIX"
+    [ $? -eq 0 ] && info "Your previous private key has been moved to '$RSYNC_BACKUPS_PRIVKEY.$SUFFIX'"
+
+    # the old brutish way of doing it...
+    ###keychain --stop all # should kill all ssh-agents & gpg-agents
+    ###unset SSH_AGENT_PID
+    ###unset SSH_AUTH_SOCK
+    ###info "SSH env scrubbed. old files are in ~/.ssh.$SUFFIX & ~/.ssh.keychain.$SUFFIX"
+
+elif [ "$1" = "help" ] || [ "$1" = "-h" ]
+then
+    set +x
+    info "To run interactively & have the script try to set up (or fix) your SSH"
+    info "environment, and share your public key with the remote host, simple run the"
+    info "script with no arguments:"
+    info ""
+    info "    $ $0"
+    info ""
+    info "To test that your configuration can successfully log in to your"
+    info "RSYNC_BACKUPS_HOST without a passphrase or password prompt, run:"
+    info ""
+    info "    $ $0 test && echo OK"
+    info ""
+    info "If it outputs 'OK', you are all set."
+    info ""
+    info "If everything is messed up & you want to start over, you can resort to:"
+    info ""
+    info "    $ $0 reset"
+    exit 0
+elif [ "$1" != "" ]
+then
+    die "unknown option: $1"
+fi
+
+echo 0
+set +x
+info "Welcome to rsync-backups-auth-setup.  This script will attempt to walk"
+info "you through the setup of ssh-agent and the sharing of your public key"
+info "with $RSYNC_BACKUPS_USER@$RSYNC_BACKUPS_HOST"
+info ""
+info "You should *NOT* use a passphraseless key.  We will use Gentoo's keychain"
+info "utility to preserve SSH_AUTH_SOCK and SSH_AGENT_ID across logins, as"
+info "documented here: http://www.gentoo.org/doc/en/keychain-guide.xml"
+info ""
+info "This setup will require you to re-enter your passphrase once each time"
+info "the system restarts (less than once a year).  You will be notified by"
+info "email and will only have to log in to the system to be prompted for"
+info "the passphrase."
+set -x
+
+# does user have a keypair?
+if [ ! -e "$RSYNC_BACKUPS_PRIVKEY" ] || [ ! -e "$RSYNC_BACKUPS_PUBKEY" ]
+then
+    info "You do not have a rsync-backups keypair, in the next step we will create one"
+    PASSPHRASE=$( getpass )
+    # rsa over dsa because it works for encrypting as well as signing/verifying
+    # ssh-keygen [-q] [-b bits] -t type [-N new_passphrase] [-C comment] [-f output_keyfile]
+    ssh-keygen -q -t rsa -b 2048 -N "$PASSPHRASE" -C "key created for rsync-backups on ` date -I `" -f "$RSYNC_BACKUPS_PRIVKEY"
+fi
+
+# is the keypair passphrase protected?
+grep 'Proc-Type: 4,ENCRYPTED' "$RSYNC_BACKUPS_PRIVKEY" >/dev/null
+[ $? -ne 0 ] && die "Your key is not passphrase protected"
+
+# user should now have a keypair, enforce permissions
+chmod 0711 "$HOME"
+chmod 0755 "$HOME/.ssh"
+chmod 0600 "$RSYNC_BACKUPS_PRIVKEY"
+chmod 0655 "$RSYNC_BACKUPS_PUBKEY"
+
+
+# are any ssh-agents actually running?
+SSH_AGENT_PIDS=( $( ps -C ssh-agent -o pid=,user= | grep $LOGNAME | awk '{ print $1 }' ) )
+if [ ${#SSH_AGENT_PIDS[*]} -gt 1 ]
+then
+    # too many ssh-agents
+    set +x
+    info "WARNING: found ${#SSH_AGENT_PIDS[*]} ssh-agents."
+    info "Trying to kill all ssh-agents other than the one keychain is providing..."
+    set -x
+    keychain --stop others
+elif [ ${#SSH_AGENT_PIDS[*]} -lt 1 ]
+then
+    # no running ssh-agent
+    info "No running ssh-agents found.  Trying to start one..."
+    keychain
+fi
+
+# 
+SSH_AGENT_PIDS=( $( ps -C ssh-agent -o pid=,user= | grep $LOGNAME | awk '{ print $1 }' ) )
+if [ ${#SSH_AGENT_PIDS[*]} -eq 1 ]
+then
+    info "Good news, we found exactly one running ssh-agent"
+
+    if [ "$KEY_SSH_AGENT_PID" != "" ] && [ "$KEY_SSH_AGENT_PID" != "$ENV_SSH_AGENT_PID" ]
+    then
+        info "Running ssh-agent and keychain seem to be in-sync"
+    else
+        info "It looks like ssh-agent & keychain were not in-sync"
+    fi
+fi
+
+# collect some info about the current environment
+if [ "$SSH_AGENT_PID" != "" ] && [ "$SSH_AUTH_SOCK" != "" ]
+then
+    # copy them in case we source a keychain file later
+    ENV_SSH_AGENT_PID="$SSH_AGENT_PID"
+    ENV_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
+fi
+
+# is there already a keychain file?
+HOST_NAME=$( uname -n )
+KEYCHAIN_SH="$HOME/.keychain/${HOST_NAME}-sh"
+if [ -r "$KEYCHAIN_SH" ]
+then
+    # sourcing $KEYCHAIN_SH may modify SSH_AGENT_PID and SSH_AUTH_SOCK
+    source "$KEYCHAIN_SH"
+    KEY_SSH_AGENT_PID="$SSH_AGENT_PID"
+    KEY_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
+fi
+
+# 
+
+
+
+set +x
+info "" 
+info "We will now copy your public key to the remote account's authorized_keys" 
+info "file.  You will be asked for the remote user's password." 
+info "" 
+set -x
+
+REMOTE_CMD='cat - >>~/.ssh/authorized_keys && chmod 0600 ~/.ssh/authorized_keys'
+cat "$PUB_KEY" | ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "$REMOTE_CMD"
+[ $? -ne 0 ] && die "copying public key to $RSYNC_BACKUPS_HOST failed"
+
+info "Testing the new setup..."
+ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "ls" 2>/dev/null
+[ $? -ne 0 ] && die "failed to login!" || info "Success!"
+exit 0
