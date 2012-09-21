@@ -1,22 +1,9 @@
-# ~/.profile: executed by the command interpreter for login shells.
-# This file is not read by bash(1), if ~/.bash_profile or ~/.bash_login
-# exists.
-# see /usr/share/doc/bash/examples/startup-files for examples.
-# the files are located in the bash-doc package.
+# ~/.bash_profile will supercede ~/.profile if your login shell is bash
+# if your shell is sh, it will look for this ~/.profile 
+# your ~/.bash_profile explicitly sources this file so these settings work for both shells
 
-# the default umask is set in /etc/profile; for setting the umask
-# for ssh logins, install and configure the libpam-umask package.
+# the default umask is set in /etc/login.defs
 #umask 022
+[ -d "$HOME/bin" ] && [ "$PATH" == "${PATH##$HOME/bin}" ] && export PATH="$HOME/bin:$PATH"
+[ -f "$HOME/.keychainrc" ] && . "$HOME/.keychainrc"
 
-# if running bash
-if [ -n "$BASH_VERSION" ]; then
-    # include .bashrc if it exists
-    if [ -f "$HOME/.bashrc" ]; then
-	. "$HOME/.bashrc"
-    fi
-fi
-
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
