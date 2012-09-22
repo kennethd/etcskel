@@ -130,7 +130,8 @@ shellutils@ylayali.net.
 ====== CRON ======
 
 One of the side benefits of the backup setup is a certain transparency wrt
-cronjobs.  The default crontab is based on vixie cron's special timespec
+cronjobs.  VCS-friendly cron scripts was another incentive for this package.
+The default crontab is based on vixie cron's special timespec
 strings: @daily, @weekly, @hourly, etc & an included script called ''run-parts''
 which will execute all scripts within the associated directory.
 
