@@ -8,6 +8,6 @@
 [ -f "$HOME/.keychainrc" ] && . "$HOME/.keychainrc"
 [ -f "$HOME/.pythonstartup" ] && export PYTHONSTARTUP="$HOME/.pythonstartup"
 # on some systems pinentry will not be able to prompt you without this
-export GPG_TTY=tty
+export GPG_TTY=`tty`
 # never use nano
 export EDITOR=vim
