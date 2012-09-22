@@ -31,16 +31,16 @@ askpass()
     # Here's how to ask for a password without echoing the characters.
     # The trapping ensures that an interrupt does not leave echo off
     trap "stty echo ; echo 'Interrupted' ; exit 1" 1 2 3 15
-    echo -n "Please enter a passphrase: "
+    echo -n "Please enter a passphrase: " >&2
     stty -echo
     read password1
     stty echo
-    echo "" # newline
-    echo -n "Please re-enter the passphrase: "
+    echo "" >&2 # newline
+    echo -n "Please re-enter the passphrase: " >&2
     stty -echo
     read password2
     stty echo
-    echo "" # newline
+    echo "" >&2 # newline
     # check for empty password
     if [ -z "$password1" ]; then
         echo "Error: Passphrase cannot be empty" >&2
@@ -98,8 +98,6 @@ then
     info "You will have to redistribute it to any other accounts you have shared it with"
     info "Your other keys should not be effected"
     yes_or_no || exit 1
-    # instead of resetting all of keychain's keys, just remove ours
-    ###keychain --stop all # should kill all ssh-agents & gpg-agents
     ssh-add -d "$RSYNC_BACKUPS_PUBKEY" >/dev/null
     SUFFIX="` date -I `.$$"
     mv "$RSYNC_BACKUPS_PUBKEY" "$RSYNC_BACKUPS_PUBKEY.$SUFFIX"
@@ -165,8 +163,9 @@ grep 'Proc-Type: 4,ENCRYPTED' "$RSYNC_BACKUPS_PRIVKEY" >/dev/null
 # user should now have a keypair, enforce permissions
 chmod 0711 "$HOME"
 chmod 0755 "$HOME/.ssh"
+chmod 0600 "$HOME/.ssh/{authorized_keys,config,known_hosts}"
 chmod 0600 "$RSYNC_BACKUPS_PRIVKEY"
-chmod 0655 "$RSYNC_BACKUPS_PUBKEY"
+chmod 0644 "$RSYNC_BACKUPS_PUBKEY"
 
 # are any ssh-agents actually running?
 SSH_AGENT_PIDS=( $( ps -C ssh-agent -o pid=,user= | grep $LOGNAME | awk '{ print $1 }' ) )
@@ -182,7 +181,7 @@ elif [ ${#SSH_AGENT_PIDS[*]} -lt 1 ]
 then
     # no running ssh-agent
     info "No running ssh-agents found.  Trying to start one and add your key..."
-    keychain "$RSYNC_BACKUPS_PRIVKEY"
+    keychain --nogui "$RSYNC_BACKUPS_PRIVKEY"
 fi
 
 # try again... now there should be exactly one ssh-agent
@@ -200,7 +199,7 @@ else
         ssh-add -l 
     else
         # keychain will inherit SSH_AGENT_PID 
-        keychain "$RSYNC_BACKUPS_PRIVKEY"
+        keychain --nogui "$RSYNC_BACKUPS_PRIVKEY"
     fi
 fi
 
@@ -213,9 +212,9 @@ then
         sed -i 's/^keychain\(.*\)/keychain \1 rsync-backups.id_rsa/' "$HOME/.keychainrc"
     fi
 else
-    # create keychain config 
+    # create keychain config.  TODO: check if we have an id_rsa or id_dsa to add
     cat <<-EOQ >"$HOME/.keychainrc"
-keychain rsync-backups.id_rsa
+keychain --nogui rsync-backups.id_rsa
 [[ -f $HOME/.keychain/$HOSTNAME-sh ]] && source $HOME/.keychain/$HOSTNAME-sh
 [[ -f $HOME/.keychain/$HOSTNAME-sh-gpg ]] && source  $HOME/.keychain/$HOSTNAME-sh-gpg
 EOQ
@@ -262,7 +261,7 @@ REMOTE_CMD='cat - >>~/.ssh/authorized_keys && chmod 0600 ~/.ssh/authorized_keys'
 cat "$RSYNC_BACKUPS_PUBKEY" | ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "$REMOTE_CMD"
 [ $? -ne 0 ] && die "copying public key to $RSYNC_BACKUPS_HOST failed"
 
-info "Testing the new setup..."
+info "Testing the new setup... you should NOT be prompted for a password"
 ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "ls" 2>/dev/null
 [ $? -ne 0 ] && die "failed to login!" || info "Success!"
 exit 0
