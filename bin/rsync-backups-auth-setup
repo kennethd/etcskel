@@ -73,6 +73,15 @@ yes_or_no()
     fi
 }
 
+# does ~/.ssh/config have entry for our host?  (do this before 'test')
+[ -e "$HOME/.ssh/config" ] && grep "$RSYNC_BACKUPS_HOST" "$HOME/.ssh/config" >/dev/null || cat <<-EOQ >>"$HOME/.ssh/config"
+
+Host $RSYNC_BACKUPS_HOST
+    ForwardAgent no
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+EOQ
+
 if [ "$1" = "test" ]
 then
     # confirm ability to log in to remote host, exit with success/fail
@@ -156,15 +165,6 @@ chmod 0711 "$HOME"
 chmod 0755 "$HOME/.ssh"
 chmod 0600 "$RSYNC_BACKUPS_PRIVKEY"
 chmod 0655 "$RSYNC_BACKUPS_PUBKEY"
-
-# does ~/.ssh/config have entry for our host?
-[ -e "$HOME/.ssh/config" ] && grep "$RSYNC_BACKUPS_HOST" "$HOME/.ssh/config" >/dev/null || cat <<-EOQ >>"$HOME/.ssh/config"
-
-Host $RSYNC_BACKUPS_HOST
-    ForwardAgent no
-    PubkeyAuthentication yes
-    PasswordAuthentication no
-EOQ
 
 # are any ssh-agents actually running?
 SSH_AGENT_PIDS=( $( ps -C ssh-agent -o pid=,user= | grep $LOGNAME | awk '{ print $1 }' ) )
