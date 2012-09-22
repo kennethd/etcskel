@@ -38,7 +38,7 @@ fi
 TARFILE="$ETCSKEL_BACKUP_DIR/etcskel-update-` date -I `.$$.tar.gz"
 # -C tells tar to cd before executing so we grab files from $HOME & not $EXPORT_DIR
 # --ignore-failed-read does not fail when some files do not exist in $HOME
-tar -C "$HOME" --ignore-failed-read -czf "$TARFILE" ${FILES[@]}
+tar -C "$HOME" --ignore-failed-read -czf "$TARFILE" ${FILES[@]} 2>/dev/null
 [ $? -ne 0 ] && exit $?
 # success, delete old backups
 find "$ETCSKEL_BACKUP_DIR" -daystart -mtime +5 -type f -print0 | xargs -r -0 rm -f
