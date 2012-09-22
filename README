@@ -70,12 +70,14 @@ You can use dropbox.com to store your remote backups, and have access to them
 from any of your computers or dropbox-enabled devices.  It is free for up to 2GB.
 
 If you don't have one already, create a dropbox account.  You will have to
-authorize etcskel-backups to upload files on your behalf.  You only have to do
-this once.  If you are setting up a new dropbox account, feel free to accept
-an invitation from me @ http://db.tt/NvvJZEIC (we will both get some extra
-storage)
+authorize etcskel-backups to upload files on your behalf.  You only have to 
+perform this setup once per account.  
 
-At your user shell, run ''etcskel-dropbox-term'' and type ''login'':
+If you are setting up a new dropbox account, feel free to accept an invitation
+from me @ http://db.tt/NvvJZEIC (we will both get some extra storage)
+
+To perform the authorization, at your user shell, run ''etcskel-dropbox-term''
+and type ''login'':
 
   kenneth@gilgamesh:~$ etcskel-dropbox-term
   Dropbox> login
@@ -99,13 +101,31 @@ to consider using rsync-backups to a private server instead.
 
 ===== rsync-backups ======
 
-TODO: rsync-backups is not yet upgraded for the new version
+As an alternative to dropbox, if you have an internet-accessable host somewhere
+you can configure ''rsync-backups'' to take care of transferring your backups
+for you.  ''rsync-backups'' relies on shared SSH keys, as far as I know it is
+not compatible with any cloud services, only with actual UNIX server accounts
+elsewhere on the internet.
 
-If you have an internet-accessable host somewhere you can configure
-rsync-backups to take care of transferring your backups for you.
+Enabling ''rsync-backups'' should require no more than editing
+''~/etc/backup/rsync'', a number of changes are required:
 
-If you do not already have another file server up & running somewhere, it will be
-up to you to copy the generated backups to another computer.
+  * RSYNC_BACKUPS_HOST must be set 
+  * RSYNC_BACKUPS_USER must be set 
+  * RSYNC_BACKUPS_PATH must be set 
+
+Once these three variables are configured, run the script that tries to set up
+data-sharing permissions for you:
+
+  $ rsync-backups-auth-setup
+
+If successful, the last change you need to make for automatic backups is to
+uncomment the line in the config file:
+
+  RSYNC_BACKUPS_ENABLED=yes
+
+If you run into problems with this script, please send a detailed report to
+shellutils@ylayali.net.
 
 ====== CRON ======
 
