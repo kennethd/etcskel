@@ -130,7 +130,6 @@ then
     die "unknown option: $1"
 fi
 
-echo 0
 set +x
 info "Welcome to rsync-backups-auth-setup.  This script will attempt to walk"
 info "you through the setup of ssh-agent and the sharing of your public key"
@@ -202,17 +201,14 @@ else
     fi
 fi
 
-# is there already a keychain file?
-HOST_NAME=$( uname -n )
-KEYCHAIN_SH="$HOME/.keychain/${HOST_NAME}-sh"
-if [ -e "$KEYCHAIN_SH" ]
+# is there already a ~/.keychainrc file?
+if [ -e "$HOME/.keychainrc" ]
 then
-    # sourcing $KEYCHAIN_SH may modify SSH_AGENT_PID and SSH_AUTH_SOCK
-    ENV_SSH_AGENT_PID="$SSH_AGENT_PID"
-    ENV_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
-    source "$KEYCHAIN_SH"
-    KEY_SSH_AGENT_PID="$SSH_AGENT_PID"
-    KEY_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
+    # make sure our key is listed on the keychain line
+    if ! grep rsync-backups.id_rsa "$HOME/.keychainrc"
+    then
+        sed -i 's/^keychain\(.*\)/keychain \1 rsync-backups.id_rsa/' "$HOME/.keychainrc"
+    fi
 else
     # create keychain config 
     cat <<-EOQ >"$HOME/.keychainrc"
@@ -220,6 +216,29 @@ keychain rsync-backups.id_rsa
 [[ -f $HOME/.keychain/$HOSTNAME-sh ]] && source $HOME/.keychain/$HOSTNAME-sh
 [[ -f $HOME/.keychain/$HOSTNAME-sh-gpg ]] && source  $HOME/.keychain/$HOSTNAME-sh-gpg
 EOQ
+    info "created keychain config file @ $HOME/.keychainrc"
+    info "if you have other keys you would like keychain to manage, you can add them like:"
+    info "keychain rsync-backups.id_rsa id_rsa anotherkey_id_dsa"
+fi
+
+HOST_NAME=$( uname -n )
+KEYCHAIN_SH="$HOME/.keychain/${HOST_NAME}-sh"
+if [ -e "$KEYCHAIN_SH" ]
+then
+    # verify that our environment's SSH_AGENT_PID matches that of $KEYCHAIN_SH
+    # sourcing $KEYCHAIN_SH may modify SSH_AGENT_PID and SSH_AUTH_SOCK
+    ENV_SSH_AGENT_PID="$SSH_AGENT_PID"
+    ENV_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
+    source "$KEYCHAIN_SH"
+    KEY_SSH_AGENT_PID="$SSH_AGENT_PID"
+    KEY_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
+    if [ "$KEY_SSH_AGENT_PID" != "$ENV_SSH_AGENT_PID" ]
+    then
+        info "Environment & keychain SSH_AGENT_PIDs out-of-sync.  restarting keychain"
+        keychain --clear >/dev/null
+        rm "$HOME/.keychain/*"
+        unset -v ENV_SSH_AGENT_PID ENV_SSH_AUTH_SOCK KEY_SSH_AGENT_PID KEY_SSH_AUTH_SOCK
+    fi
 fi
 
 # finally, authorize the key on the remote host
