@@ -88,18 +88,13 @@ then
     info "Your other keys should not be effected"
     yes_or_no || exit 1
     # instead of resetting all of keychain's keys, just remove ours
+    ###keychain --stop all # should kill all ssh-agents & gpg-agents
     ssh-add -d "$RSYNC_BACKUPS_PUBKEY" >/dev/null
     SUFFIX="` date -I `.$$"
     mv "$RSYNC_BACKUPS_PUBKEY" "$RSYNC_BACKUPS_PUBKEY.$SUFFIX"
     [ $? -eq 0 ] && info "Your previous public key has been moved to '$RSYNC_BACKUPS_PUBKEY.$SUFFIX'"
     mv "$RSYNC_BACKUPS_PRIVKEY" "$RSYNC_BACKUPS_PRIVKEY.$SUFFIX"
     [ $? -eq 0 ] && info "Your previous private key has been moved to '$RSYNC_BACKUPS_PRIVKEY.$SUFFIX'"
-
-    # the old brutish way of doing it...
-    ###keychain --stop all # should kill all ssh-agents & gpg-agents
-    ###unset SSH_AGENT_PID
-    ###unset SSH_AUTH_SOCK
-    ###info "SSH env scrubbed. old files are in ~/.ssh.$SUFFIX & ~/.ssh.keychain.$SUFFIX"
 
 elif [ "$1" = "help" ] || [ "$1" = "-h" ]
 then
@@ -162,6 +157,14 @@ chmod 0755 "$HOME/.ssh"
 chmod 0600 "$RSYNC_BACKUPS_PRIVKEY"
 chmod 0655 "$RSYNC_BACKUPS_PUBKEY"
 
+# does ~/.ssh/config have entry for our host?
+[ -e "$HOME/.ssh/config" ] && grep "$RSYNC_BACKUPS_HOST" "$HOME/.ssh/config" >/dev/null || cat <<-EOQ >>"$HOME/.ssh/config"
+
+Host $RSYNC_BACKUPS_HOST
+    ForwardAgent no
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+EOQ
 
 # are any ssh-agents actually running?
 SSH_AGENT_PIDS=( $( ps -C ssh-agent -o pid=,user= | grep $LOGNAME | awk '{ print $1 }' ) )
@@ -176,47 +179,50 @@ then
 elif [ ${#SSH_AGENT_PIDS[*]} -lt 1 ]
 then
     # no running ssh-agent
-    info "No running ssh-agents found.  Trying to start one..."
-    keychain
+    info "No running ssh-agents found.  Trying to start one and add your key..."
+    keychain "$RSYNC_BACKUPS_PRIVKEY"
 fi
 
-# 
+# try again... now there should be exactly one ssh-agent
 SSH_AGENT_PIDS=( $( ps -C ssh-agent -o pid=,user= | grep $LOGNAME | awk '{ print $1 }' ) )
-if [ ${#SSH_AGENT_PIDS[*]} -eq 1 ]
+if [ ${#SSH_AGENT_PIDS[*]} -ne 1 ]
 then
+    die "still have ${#SSH_AGENT_PIDS[*]} running ssh-agents.  please try '$0 reset'"
+else
     info "Good news, we found exactly one running ssh-agent"
-
-    if [ "$KEY_SSH_AGENT_PID" != "" ] && [ "$KEY_SSH_AGENT_PID" != "$ENV_SSH_AGENT_PID" ]
+    # compare running ssh-agent's pid with SSH_AGENT_PID
+    if [ "${SSH_AGENT_PIDS[0]}" = "$SSH_AGENT_PID" ]
     then
-        info "Running ssh-agent and keychain seem to be in-sync"
+        info "Your environment appears to be in-sync with the running ssh-agent"
+        info "Keys currently loaded into your ssh-agent:"
+        ssh-add -l 
     else
-        info "It looks like ssh-agent & keychain were not in-sync"
+        # keychain will inherit SSH_AGENT_PID 
+        keychain "$RSYNC_BACKUPS_PRIVKEY"
     fi
-fi
-
-# collect some info about the current environment
-if [ "$SSH_AGENT_PID" != "" ] && [ "$SSH_AUTH_SOCK" != "" ]
-then
-    # copy them in case we source a keychain file later
-    ENV_SSH_AGENT_PID="$SSH_AGENT_PID"
-    ENV_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
 fi
 
 # is there already a keychain file?
 HOST_NAME=$( uname -n )
 KEYCHAIN_SH="$HOME/.keychain/${HOST_NAME}-sh"
-if [ -r "$KEYCHAIN_SH" ]
+if [ -e "$KEYCHAIN_SH" ]
 then
     # sourcing $KEYCHAIN_SH may modify SSH_AGENT_PID and SSH_AUTH_SOCK
+    ENV_SSH_AGENT_PID="$SSH_AGENT_PID"
+    ENV_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
     source "$KEYCHAIN_SH"
     KEY_SSH_AGENT_PID="$SSH_AGENT_PID"
     KEY_SSH_AUTH_SOCK="$SSH_AUTH_SOCK"
+else
+    # create keychain config 
+    cat <<-EOQ >"$HOME/.keychainrc"
+keychain rsync-backups.id_rsa
+[[ -f $HOME/.keychain/$HOSTNAME-sh ]] && source $HOME/.keychain/$HOSTNAME-sh
+[[ -f $HOME/.keychain/$HOSTNAME-sh-gpg ]] && source  $HOME/.keychain/$HOSTNAME-sh-gpg
+EOQ
 fi
 
-# 
-
-
-
+# finally, authorize the key on the remote host
 set +x
 info "" 
 info "We will now copy your public key to the remote account's authorized_keys" 
