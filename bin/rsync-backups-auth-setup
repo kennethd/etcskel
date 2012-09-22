@@ -235,9 +235,15 @@ then
     if [ "$KEY_SSH_AGENT_PID" != "$ENV_SSH_AGENT_PID" ]
     then
         info "Environment & keychain SSH_AGENT_PIDs out-of-sync.  restarting keychain"
+        info "You will be asked to re-enter your keys' passphrases"
+        LOADED_KEYS=( $( ssh-add -l | awk '{ print $3 }' ) )
         keychain --clear >/dev/null
         rm "$HOME/.keychain/*"
         unset -v ENV_SSH_AGENT_PID ENV_SSH_AUTH_SOCK KEY_SSH_AGENT_PID KEY_SSH_AUTH_SOCK
+        keychain --nogui "${LOADED_KEYS[*]}" rsync-backups.id_rsa
+        . "$KEYCHAIN_SH"
+        info "Your keychain environment has been recreated.  If you have other terminals"
+        info "open, you may need to run 'source $KEYCHAIN_SH' in each to fix them"
     fi
 fi
 
