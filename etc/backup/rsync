@@ -21,7 +21,7 @@ RSYNC_BACKUPS_PATH=""
 # creates a dedicated keypair & loads it into ssh-agent for you so running 
 # `rsync-backups-auth-setup reset` will not interfere with any of your other
 # keys.
-RSYNC_BACKUPS_PUBKEY="~/.ssh/rsync-backups.id_rsa.pub"
+RSYNC_BACKUPS_PUBKEY="$HOME/.ssh/rsync-backups.id_rsa.pub"
 
 # Be careful editing the following options.  The default should be good for
 # all ordinary users.  Particularly if you are only copying the tar archives

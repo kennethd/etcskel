@@ -2,8 +2,9 @@
 # vary minute (1-9) to avoid all users' syncs from kicking off @ the same time
 RANGE=9; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 1";
 # if you haven't authorized etcskel-backups to write to your dropbox, this
-# script will exit successfully.  We will ignore the message printed to STDERR
+# script will exit successfully.
+[ -r "$HOME/.etcskel-backups.dropbox.token" ] || exit 0
 at 03:1$MIN >/dev/null 2>&1 <<-EOQ
-"$HOME/bin/etcskel-dropbox-backups-sync" 2>/dev/null
+"$HOME/bin/backups-sync-dropbox" 2>/dev/null
 EOQ
 
