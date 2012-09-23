@@ -81,29 +81,35 @@ do
 done
 
 # delete files since removed from the repo, if not protected
+IFS='
+'
 DELETE_OLD_PATHS=( $( < "$HOME/etc/etcskel/delete-old-paths" ) )
-for FILE in $DELETE_OLD_PATHS
+for FILE in ${DELETE_OLD_PATHS[*]}
 do
+    # skip comments & blank lines
+    echo "$FILE" | grep -E '^[ \t]*#|^[ \t]*$' >/dev/null && continue
+    # configured to leave file alone?
     if grep -c "^$FILE[ \t]*\$" "$HOME/etc/etcskel/no-overwrite" 2>&1 >/dev/null && test -e "$HOME/$FILE"
     then
         echo "$0: skipping $FILE [DEPRECATED but protected]" >&2
-    else
-        if [ -f "$FILE" ]
+    # else, if file exists try to delete it
+    elif [ -e "$HOME/$FILE" ]
+    then
+        if [ -f "$HOME/$FILE" ]
         then
             echo "$0: deleting file $FILE [deprecated]" >&2
-            rm -f "$FILE" # --interactive=never
-        elif [ -d "$FILE" ]
+            rm -f "$HOME/$FILE" # --interactive=never
+        elif [ -d "$HOME/$FILE" ]
         then
             echo "$0: deleting dir $FILE [deprecated]" >&2
-            rmdir "$FILE"
-        elif [ -h "$FILE" ]
+            rmdir "$HOME/$FILE"
+        elif [ -h "$HOME/$FILE" ]
         then
             echo "$0: removing link $FILE [deprecated]" >&2
-            unlink "$FILE"
-        elif [ -e "$FILE" ]
-        then
+            unlink "$HOME/$FILE"
+        else
             echo "$0: trying to remove special file $FILE [deprecated]" >&2
-            rm -f "$FILE" # --interactive=never
+            rm -f "$HOME/$FILE" # --interactive=never
         fi
     fi
 done
