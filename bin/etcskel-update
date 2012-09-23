@@ -81,7 +81,7 @@ do
 done
 
 # delete files since removed from the repo, if not protected
-DELETE_OLD_PATHS=( < "%HOME/etc/etcskel/delete-old-paths" )
+DELETE_OLD_PATHS=( < "$HOME/etc/etcskel/delete-old-paths" )
 for FILE in $DELETE_OLD_PATHS
 do
     if grep -c "^$FILE[ \t]*\$" "$HOME/etc/etcskel/no-overwrite" 2>&1 >/dev/null && test -e "$HOME/$FILE"
