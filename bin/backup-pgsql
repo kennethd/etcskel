@@ -39,5 +39,10 @@ HOST="$( hostname )"
 # delete old backups 
 find "$BACKUP_PGSQL_DIR" -daystart -mtime +$BACKUP_PGSQL_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
 
-pg_dump --schema-only > "$BACKUP_PGSQL_DIR"/pg_dump.$HOST.$LOGNAME.$DATEI.ddl
-pg_dump | gzip > "$BACKUP_PGSQL_DIR"/pg_dump.$HOST.$LOGNAME.$DATEI.sql.gz
+# get list of the databases owned by user
+DB_NAMES=( $( psql -lt | awk 'BEGIN { FS = "[ \t|:]+" } $3 == "'$LOGNAME'" { print $2 }' ) )
+for DB_NAME in DB_NAMES
+do
+    pg_dump --schema-only "$DB_NAME" > "$BACKUP_PGSQL_DIR/$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl"
+    pg_dump "$DB_NAME" | gzip > "$BACKUP_PGSQL_DIR/$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz"
+done
