@@ -5,7 +5,10 @@ RANGE=9; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 1";
 
 at 00:1$MIN >/dev/null 2>&1 <<-EOQ
 "$HOME/bin/backup-conf" 2>/dev/null
+# try to do mysql backup if we have a ~/.my.cnf
 [ "$LOGNAME" != "root" ] && [ -e "$HOME/.my.cnf" ] && [ -x "$HOME/bin/backup-mysql" ] && "$HOME/bin/backup-mysql" 2>/dev/null
+# try to do pg backup if we are authenticated for shell access 
+echo '\d' | psql 1>&2 2>/dev/null && [ -x "$HOME/bin/backup-pgsql" ] && "$HOME/bin/backup-pgsql" 2>/dev/null
 EOQ
 
 # within <<-HEREDOC leading tabs are ignored, but NOT leading spaces

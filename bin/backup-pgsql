@@ -50,3 +50,4 @@ done
 echo '\t\d' | psql | awk 'BEGIN { FS = "[ \t|:]+" } $4 { print "\\d " $3 }' | \
     psql > "$BACKUP_PGSQL_DIR/relations.$HOST.$LOGNAME.$DATEI.txt"
 
+exit 0
