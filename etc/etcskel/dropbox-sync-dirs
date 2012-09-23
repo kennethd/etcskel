@@ -4,4 +4,4 @@
 ~/backups/full
 ~/backups/daily
 ~/backups/mysql
-~/backups/postgres
+~/backups/pgsql
