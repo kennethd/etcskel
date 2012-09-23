@@ -46,3 +46,7 @@ do
     pg_dump --schema-only "$DB_NAME" > "$BACKUP_PGSQL_DIR/$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl"
     pg_dump "$DB_NAME" | gzip > "$BACKUP_PGSQL_DIR/$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz"
 done
+# dump a pretty list of relations
+echo '\t\d' | psql | awk 'BEGIN { FS = "[ \t|:]+" } $4 { print "\\d " $3 }' | \
+    psql > "$BACKUP_PGSQL_DIR/relations.$HOST.$LOGNAME.$DATEI.txt"
+
