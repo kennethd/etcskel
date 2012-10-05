@@ -46,6 +46,7 @@ perl -e 'use ExtUtils::Installed; my $inst = ExtUtils::Installed->new(); my @mod
 which pip >/dev/null && pip freeze > "$BACKUP_CONF_DIR/pip_freeze.$HOST.$DATEI.txt" 
 which gem >/dev/null && gem list > "$BACKUP_CONF_DIR/gem_list.$HOST.$DATEI.txt"
 which npm >/dev/null && npm ls -g > "$BACKUP_CONF_DIR/npm_ls-g.$HOST.$DATEI.txt"
+which pear >/dev/null && pear list > "$BACKUP_CONF_DIR/pear-list.$HOST.$DATEI.txt"
 
 if [ "$LOGNAME" = "root" ]; then
     PATH="/sbin:$PATH"; export PATH
