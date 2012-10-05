@@ -1,0 +1,7 @@
+# this is an unfortunate hack, but its not worth finding a better way.
+# list files here which were formerly provided by this package.
+# the delete code should also respect the no-overwrite file, for users who
+# want to keep the old version, or happen to re-use the path for something else
+# 
+# like no-overwrite
+bin/etcskel-dropbox-backups-sync

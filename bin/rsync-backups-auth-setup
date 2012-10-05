@@ -203,6 +203,12 @@ else
     fi
 fi
 
+# TODO: this could be improved by looking for ~/.ssh/*.pub files & then the
+# associated private key, but for now so few people use more than a single
+# key, just grabbing id_rsa & id_dsa should be sufficient
+IDS=( $( ls "$HOME/.ssh/id_{rsa,dsa}" 2>/dev/null ) )
+IDS=${IDS##*/} # remove everything up to & incl final /
+
 # is there already a ~/.keychainrc file?
 if [ -e "$HOME/.keychainrc" ]
 then
@@ -212,9 +218,9 @@ then
         sed -i 's/^keychain\(.*\)/keychain \1 rsync-backups.id_rsa/' "$HOME/.keychainrc"
     fi
 else
-    # create keychain config.  TODO: check if we have an id_rsa or id_dsa to add
+    # create keychain config.
     cat <<-EOQ >"$HOME/.keychainrc"
-keychain --nogui rsync-backups.id_rsa
+keychain --nogui rsync-backups.id_rsa ${IDS[*]}
 [[ -f $HOME/.keychain/$HOSTNAME-sh ]] && source $HOME/.keychain/$HOSTNAME-sh
 [[ -f $HOME/.keychain/$HOSTNAME-sh-gpg ]] && source  $HOME/.keychain/$HOSTNAME-sh-gpg
 EOQ
@@ -264,4 +270,6 @@ cat "$RSYNC_BACKUPS_PUBKEY" | ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST"
 info "Testing the new setup... you should NOT be prompted for a password"
 ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "ls" 2>/dev/null
 [ $? -ne 0 ] && die "failed to login!" || info "Success!"
-exit 0
+
+. "$HOME/.keychainrc" 
+exit $?
