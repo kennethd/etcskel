@@ -1,0 +1,136 @@
+#!/usr/bin/bc -l
+## 2008-11-30:  When I tired of the painful contortions involved in rounding-to-integer, I googled and found the answer:
+## which is to put a file like this one, named bc, into a directory that's named in your PATH and comes before /usr/bin 
+## where your Linux bc is;
+##
+## most of this is the work of others, as indicated below;
+## bcf is a trivial related script, for bc with printf-like formatting -- Eugene Reimer  http://ereimer.net  2008-11-30;
+
+
+##================================================================
+## Functions -- these are from http://www.pixelbeat.org/scripts/bc
+##================================================================
+## Author:      Pádraig Brady  http://www.pixelbeat.org/
+## Description: Integer functions I've found useful while programming in the unix environment.
+## Note:        Personally I have this file in ~/bin/bc so I can invoke bc as normal and have these functions available.
+## Changes:     V0.1, 11 Apr 2007, Initial release
+
+define min(x,y) {
+    if (x<y) return x
+    return y
+}
+
+define max(x,y) {
+    if (x>y) return x
+    return y
+}
+
+define abs(x) {
+    if (x<0) return -x
+    return x
+}
+
+## take integer part
+define int(x) {
+    auto old_scale      ##variables global by default
+    old_scale=scale     ##scale is global
+    scale=0; ret=x/1
+    scale=old_scale
+    return ret
+}
+
+## round to nearest integer
+define round(x) {
+    if (x<0) x-=.5 else x+=.5
+    return int(x)
+}
+
+## smallest integer >= arg
+define ceil(x) {
+    auto intx
+    intx=int(x)
+    if (intx<x) intx+=1
+    return intx
+}
+
+## largest integer <= arg
+define floor(x) {
+    return -ceil(-x)
+}
+
+## round x to previous multiple of y
+define round_down(x,y) {
+    return y*floor(x/y)
+}
+
+## round x to next multiple of y
+define round_up(x,y) {
+    return y*ceil(x/y)
+}
+
+## round x to nearest multiple of y
+define round_to(x,y) {
+    return y*round(x/y)
+}
+
+## Greatest Common Divisor or Highest Common Factor of x and y
+## Note when people say Lowest Common Denominator they usually mean this
+define gcd(x,y) {
+     if (y==0) return x
+     return gcd(y,x%y)          ##anything that divides into x and y also divides into the remainder of x/y
+}
+
+## Lowest Common Multiple of x and y
+## Lowest Common Denominator of fractions is LCM of the denominators
+define lcm(x,y) {
+    return (x*y/gcd(x,y))
+}
+
+##=========================================================================
+## More Functions -- these are from www.cyreksoft.yorks.com/gnu-bc/funcs.bc
+## 2009:   that page is now at   http://www.phodd.net/cyrek/gnu-bc/funcs.bc
+##=========================================================================
+## Not to be regarded as suitable for any purpose
+## Not guaranteed to return correct answers
+
+## Truncate trailing zeroes from a scaled number
+define trunc(x) {
+  auto os,i;os=scale
+  for(i=1;i<=os;i++){           ##ER: start at 1, was zero
+    scale=i
+    if(x==x/1){
+      x=x/1
+      scale=os
+      return(x)
+    }
+  } 
+}
+## x!
+define factorial(x) {
+ auto i,xx
+ if(x<0)return(0)
+ if(x<2)return(1)
+ xx=1;for(i=x;i>=1;i--)xx*=i
+ return(xx)
+}
+## Number of permutations of r items from a group of n
+define permutation(n,r) {
+ auto i,p
+ if(n<0||r<0||r>n)return(0)
+ p=1;for(i=n;i>n-r;i--)p*=i
+ return(p)
+}
+## Number of combinations of r items from a group of n
+define combination(n,r) {
+ if(n<0||r<0||r>n)return(0)
+ if(2*r>n)r=n-r
+ return( permutation(n,r)/factorial(r) ) 
+}
+
+##=========================================================================
+## ER: While extending bc, I also want the default scale to be something reasonable for calculations with "real" numbers;
+## bc's -l option provides math-functions: s(x) c(x) a(x) l(x) e(x) j(n,x) -- sine cosine arctan log-natural exponential bessel;
+## invoking bc with -l also sets scale=20, and that's how I chose that value;
+## NOTE: setting scale=20 here is no longer required since I've added "-l" to the shebang line;
+##=========================================================================
+scale=20
