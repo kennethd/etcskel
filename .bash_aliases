@@ -12,7 +12,7 @@ alias du1='du --max-depth=1 . | sort -n'
 alias lesspnum="less -P '%f        ?db%db / %D.'"
 alias ls='ls --color=auto'
 alias ll='ls -l'
-alias moby='dict -d moby-thes'
+alias moby='dict -d moby-thesaurus'
 alias rdiff='diff -bBqr --exclude=CVS'
 alias screen='screen -h 1200'
 # vi: set syntax=bash
