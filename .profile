@@ -20,3 +20,6 @@ export EDITOR=vim
 export PAGER=less
 # still have a few clients using this
 export CVS_RSH=ssh
+# http://j2labs.tumblr.com/post/5181438807/quick-dirty-virtualenv-virtualenvwrapper
+export WORKON_HOME="~/.virtualenvs"
+source /usr/local/bin/virtualenvwrapper.sh
