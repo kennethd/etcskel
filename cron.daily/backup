@@ -20,8 +20,12 @@ else
 	# full backup on Sunday, incremental since Sunday other days
 	at 00:3$MIN >/dev/null 2>&1 <<-EOQ
 	DATEW=$( date +'%w' )
-	[ "$DATEW" != "0" ] && "$HOME/bin/backup-incremental" 2>/dev/null
-	[ "$DATEW" = "0" ] && "$HOME/bin/backup-full" 2>/dev/null
+	if [ "$DATEW" = "0" ]
+	then
+		"$HOME/bin/backup-full" 2>/dev/null
+	else
+		"$HOME/bin/backup-incremental" 2>/dev/null
+	fi
 	EOQ
 fi
 
