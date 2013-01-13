@@ -1,0 +1,8 @@
+#!/usr/local/bin/perl -w
+use locale;
+use strict;
+while (<>) {
+    s/\b(\d{10})\b/scalar localtime($1)/eg;
+    print;
+}
+exit(0);
