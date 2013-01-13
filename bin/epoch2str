@@ -1,7 +1,10 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/env perl
 use strict;
+use warnings;
+
 while (<>) {
     s/\b(\d{10})\b/scalar localtime($1)/eg;
     print;
 }
+
 exit(0);
