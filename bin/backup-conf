@@ -12,29 +12,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -x
+
+die() { echo "$0: $*" >&2 ; exit 1 ; }
 logger "running backup-conf for $LOGNAME"
+set -x
 
 # backup-conf 
 # dumps some system info to the filesystem for backup-full & backup-incremental
 
 DATEI="$( date +'%Y-%m-%d' )"
 HOST="$( hostname )"
-[ -r "$HOME/etc/backup/config" ] && source "$HOME/etc/backup/config"
+
+BACKUP_CONFIG="${BACKUP_CONFIG:-$HOME/etc/backup/config}"
+[ -r "$BACKUP_CONFIG" ] || die "cannot read config $BACKUP_CONFIG"
+. "$BACKUP_CONFIG"
 
 # override by exporting non-default value before calling
 [ -z "$BACKUP_CONF_DIR" ] && BACKUP_CONF_DIR="$HOME/backups/conf"
-[ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 [ -z "$BACKUP_CONF_KEEP_DAYS" ] && BACKUP_CONF_KEEP_DAYS=3
+[ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 
-[ ! -e "$BACKUP_ETC" ] && mkdir -p "$BACKUP_ETC"
-[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && exit 1
+if [ ! -e "$BACKUP_ETC" ]
+then
+    mkdir -p "$BACKUP_ETC" || die "could not mkdir $BACKUP_ETC"
+fi
+[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && die "bad permissions $BACKUP_ETC"
 
 # allow disabling backups by touching a file
 [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ] && exit 0
 
-[ ! -e "$BACKUP_CONF_DIR" ] && mkdir -p "$BACKUP_CONF_DIR"
-[ ! -w "$BACKUP_CONF_DIR" ] && exit 1
+if [ ! -e "$BACKUP_CONF_DIR" ]
+then
+    mkdir -p "$BACKUP_CONF_DIR" || die "could not mkdir $BACKUP_CONF_DIR"
+fi
+[ ! -w "$BACKUP_CONF_DIR" ] && die "cannot write to $BACKUP_CONF_DIR"
 
 # delete old backups 
 find "$BACKUP_CONF_DIR" -daystart -mtime +$BACKUP_CONF_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
@@ -58,3 +69,5 @@ if [ "$LOGNAME" = "root" ]; then
     which mysqldump >/dev/null && mysqldump --opt --databases mysql > "$BACKUP_CONF_DIR/mysql.$HOST.$DATEI.sql"
     which lvm >/dev/null && lvm dumpconfig > "$BACKUP_CONF_DIR/lvm-dumpconfig.$HOST.$DATEI.txt"
 fi
+
+exit 0
