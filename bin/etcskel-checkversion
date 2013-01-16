@@ -12,19 +12,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-###set -x
+
 # exits successfully if etcskel is up to date, unsuccessfully with error message if not
-[ -r "$HOME/etc/etcskel/config" ] && . "$HOME/etc/etcskel/config"
+die() { echo "$0: $*" >&2 ; exit 1 ; }
+logger "running etcskel-checkversion for $LOGNAME"
+#set -x
+
+ETCSKEL_CONFIG="${ETCSKEL_CONFIG:-$HOME/etc/etcskel/config}"
+[ -r "$ETCSKEL_CONFIG" ] || die "cannot read config $ETCSKEL_CONFIG"
+. "$ETCSKEL_CONFIG"
+
+# only used as default location for ETCSKEL_VERSION_FILE
+ETCSKEL_CONFIG_DIR="${ETCSKEL_CONFIG%/*}"
+ETCSKEL_VERSION_FILE="${ETCSKEL_VERSION_FILE:-$ETCSKEL_CONFIG_DIR/version}"
+
 # requires anonymous web interface to repo via gitweb
 ###ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel/version;hb=HEAD}"
 # use apache redirect to provide cleaner URL & hide reliance on gitweb specific args:
 #   Redirect 302 /etcskel-version http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel/version;hb=HEAD
 # if you override ETCSKEL_VERSION_URL you probably also want to override ETCSKEL_REMOTE_URL
 ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/etcskel-version}"
+
 # -L causes curl to follow 3%% redirects
 REMOTE_VERSION=$( curl --silent -L "$ETCSKEL_VERSION_URL" )
-[ -r "$HOME/etc/etcskel/version" ] && LOCAL_VERSION=$( cat "$HOME/etc/etcskel/version" ) || LOCAL_VERSION="1970-01-01"
+[ -r "$ETCSKEL_VERSION_FILE" ] && LOCAL_VERSION=$( cat "$ETCSKEL_VERSION_FILE" ) || LOCAL_VERSION="1970-01-01"
+
 REMOTE_DATE=$( date -d "$REMOTE_VERSION" '+%s' )
 LOCAL_DATE=$( date -d "$LOCAL_VERSION" '+%s' )
-[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0 || echo "remote version $REMOTE_VERSION > local version $LOCAL_VERSION. please run etcskel-upgrade" >&2 && exit 1
-
+if [ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0
+die "remote version $REMOTE_VERSION > local version $LOCAL_VERSION. please run etcskel-upgrade"
