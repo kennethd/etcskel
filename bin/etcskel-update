@@ -48,7 +48,7 @@ EXPORT_DIR=$( mktemp -d )
 trap 'rm -rf "$EXPORT_DIR"' EXIT
 
 git archive --remote="$ETCSKEL_REMOTE_URL" HEAD --format=tar | tar -C "$EXPORT_DIR" -xf -
-[ $? -ne 0 ] && die "git archive failed with exit status $?"
+SC=$? && [ $SC -eq 0 ] || die "git archive failed with exit status $SC"
 
 cd "$EXPORT_DIR"
 IFS='
@@ -61,7 +61,7 @@ ETCSKEL_BACKUP_DIR="${ETCSKEL_BACKUP_DIR:-$HOME/backups/etcskel}"
 if [ ! -d "$ETCSKEL_BACKUP_DIR" ]
 then
     mkdir -p "$ETCSKEL_BACKUP_DIR"
-    [ $? -ne 0 ] && die "mkdir $ETCSKEL_BACKUP_DIR failed with exit status $?"
+    SC=$? && [ $SC -eq 0 ] || die "mkdir $ETCSKEL_BACKUP_DIR failed with exit status $SC"
 fi
 if [ "$TARGET_DIR" = "$HOME" ]
 then
@@ -74,7 +74,7 @@ fi
 # -C tells tar to cd before executing so we grab files from $HOME & not $EXPORT_DIR
 # --ignore-failed-read does not fail when some files do not exist in $HOME
 tar -C "$TARGET_DIR" --ignore-failed-read -czf "$TARFILE" ${FILES[@]} 2>/dev/null
-[ $? -ne 0 ] && die "create backup failed with exit status $?"
+SC=$? && [ $SC -eq 0 ] || die "create backup failed with exit status $SC"
 # success, delete old backups
 find "$ETCSKEL_BACKUP_DIR" -daystart -mtime +3 -type f -print0 | xargs -r -0 rm -f
 
@@ -111,7 +111,7 @@ do
         if [ "$FILE" != "$RELPATH" ]
         then
             mkdir -p "$TARGET_DIR/$RELPATH"
-            [ $? -ne 0 ] && die "mkdir $TARGET_DIR/$RELPATH failed with exit status $?"
+            SC=$? && [ $SC -eq 0 ] || die "mkdir $TARGET_DIR/$RELPATH failed with exit status $SC"
         fi
         cp "./$FILE" "$TARGET_DIR/$FILE"
     fi
