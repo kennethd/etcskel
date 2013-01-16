@@ -26,8 +26,6 @@
 # Environment Variables
 # =====================
 # ETCSKEL_CONFIG: read config from file other than $HOME/etc/etcskel/config
-#
-# in addition, any value specified in config may be overridden via ENV
 
 die() { echo "$0: $*" >&2 ; exit 1 ; }
 
