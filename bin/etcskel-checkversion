@@ -39,5 +39,5 @@ REMOTE_VERSION=$( curl --silent -L "$ETCSKEL_VERSION_URL" )
 
 REMOTE_DATE=$( date -d "$REMOTE_VERSION" '+%s' )
 LOCAL_DATE=$( date -d "$LOCAL_VERSION" '+%s' )
-if [ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0
+[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0
 die "remote version $REMOTE_VERSION > local version $LOCAL_VERSION. please run etcskel-upgrade"
