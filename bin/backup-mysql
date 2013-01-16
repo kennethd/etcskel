@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+die() { echo "$0: $*" >&2 ; exit 1 ; }
 logger "running backup-mysql for $LOGNAME"
 set -x
 
@@ -27,17 +29,27 @@ HOST="$( hostname )"
 [ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 [ -z "$BACKUP_MYSQL_KEEP_DAYS" ] && BACKUP_MYSQL_KEEP_DAYS=3
 
-[ ! -e "$BACKUP_ETC" ] && mkdir -p "$BACKUP_ETC"
-[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && exit 1
+if [ ! -e "$BACKUP_ETC" ]
+then
+    mkdir -p "$BACKUP_ETC" || die "could not mkdir $BACKUP_ETC"
+fi
+[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && die "bad permissions $BACKUP_ETC"
 
 # allow disabling backups by touching a file
 [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ] && exit 0
 
-[ ! -e "$BACKUP_MYSQL_DIR" ] && mkdir -p "$BACKUP_MYSQL_DIR"
-[ ! -w "$BACKUP_MYSQL_DIR" ] && exit 1
+if [ ! -e "$BACKUP_MYSQL_DIR" ]
+then
+    mkdir -p "$BACKUP_MYSQL_DIR" || die "could not mkdir $BACKUP_MYSQL_DIR"
+fi
+[ ! -w "$BACKUP_MYSQL_DIR" ] && die "cannot write to $BACKUP_MYSQL_DIR"
 
 # delete old backups 
 find "$BACKUP_MYSQL_DIR" -daystart -mtime +$BACKUP_MYSQL_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
 
 mysqldump --opt | gzip > "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.sql.gz
+SC=$? && [ $SC -eq 0 ] || die "mysqldump failed with status $SC"
 mysqldump --opt --no-data > "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.ddl
+SC=$? && [ $SC -eq 0 ] || die "mysqldump --no-data failed with status $SC"
+
+exit 0
