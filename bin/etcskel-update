@@ -1,45 +1,82 @@
 #!/bin/bash
 # Copyright 2012 Kenneth Dombrowski <kenneth@ylayali.net>
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Status messages go to STDERR and diffs to STDOUT, so you can do:
+#
+#   $ etcskel-update >/tmp/$LOGNAME-etcskel-update.diff
+#
+# to see status on console, while generating diff for review.
+#
+# Optional Argument
+# =================
+# $1: TARGET_DIR update a directory other than HOME
+#
+# Environment Variables
+# =====================
+# ETCSKEL_CONFIG: read config from file other than $HOME/etc/etcskel/config
+#
+# in addition, any value specified in config may be overridden via ENV
+
+die() { echo "$0: $*" >&2 ; exit 1 ; }
+
 ##set -x
-[ -r "$HOME/etc/etcskel/config" ] && . "$HOME/etc/etcskel/config"
+
+TARGET_DIR="${1:-$HOME}"
+if [ ! -d "$TARGET_DIR" ]
+then
+    mkdir -p "$TARGET_DIR" || die "could not create directory $TARGET_DIR"
+fi
+[ -w "$TARGET_DIR" ] || die "cannot write to target $TARGET_DIR"
+
+ETCSKEL_CONFIG="${ETCSKEL_CONFIG:-$HOME/etc/etcskel/config}"
+[ -r "$ETCSKEL_CONFIG" ] || die "cannot read config $ETCSKEL_CONFIG"
+. "$ETCSKEL_CONFIG"
+
 ETCSKEL_REMOTE_URL="${ETCSKEL_REMOTE_URL:-git://git.ylayali.net/etcskel.git}"
 
 EXPORT_DIR=$( mktemp -d )
 trap 'rm -rf "$EXPORT_DIR"' EXIT
 
 git archive --remote="$ETCSKEL_REMOTE_URL" HEAD --format=tar | tar -C "$EXPORT_DIR" -xf -
-[ $? -ne 0 ] && exit $?
+[ $? -ne 0 ] && die "git archive failed with exit status $?"
 
 cd "$EXPORT_DIR"
-# TODO: test with filename containing spaces
 IFS='
 '
 FILES=$( find . -type f -print )
 
 # create backup of files before continuing
+# backup dir should not be effected by TARGET_DIR, but TARFILE name should be
 ETCSKEL_BACKUP_DIR="${ETCSKEL_BACKUP_DIR:-$HOME/backups/etcskel}"
 if [ ! -d "$ETCSKEL_BACKUP_DIR" ]
 then
     mkdir -p "$ETCSKEL_BACKUP_DIR"
-    [ $? -ne 0 ] && exit $?
+    [ $? -ne 0 ] && die "mkdir $ETCSKEL_BACKUP_DIR failed with exit status $?"
 fi
-TARFILE="$ETCSKEL_BACKUP_DIR/etcskel-update-` date -I `.$$.tar.gz"
+if [ "$TARGET_DIR" = "$HOME" ]
+then
+    TARFILE="$ETCSKEL_BACKUP_DIR/etcskel-update-` date -I `.$$.tar.gz"
+else
+    # replace '/'s with '-'s
+    DIR="${TARGET_DIR////-}" # /home/kenneth -> -home-kenneth
+    TARFILE="$ETCSKEL_BACKUP_DIR/etcskel-update$DIR-` date -I `.$$.tar.gz"
+fi
 # -C tells tar to cd before executing so we grab files from $HOME & not $EXPORT_DIR
 # --ignore-failed-read does not fail when some files do not exist in $HOME
-tar -C "$HOME" --ignore-failed-read -czf "$TARFILE" ${FILES[@]} 2>/dev/null
-[ $? -ne 0 ] && exit $?
+tar -C "$TARGET_DIR" --ignore-failed-read -czf "$TARFILE" ${FILES[@]} 2>/dev/null
+[ $? -ne 0 ] && die "create backup failed with exit status $?"
 # success, delete old backups
 find "$ETCSKEL_BACKUP_DIR" -daystart -mtime +3 -type f -print0 | xargs -r -0 rm -f
 
@@ -50,20 +87,22 @@ do
     # DO NOT OVERWRITE files listed in no-overwrite UNLESS file does not
     # already exist on disk.  This is useful when installing things like
     # var/lib/logrotate/status which we will be passing control of to other
-    # packages, and also provides mechanism to force update (via rm,mv,etc) 
-    if grep -c "^$FILE[ \t]*\$" "$HOME/etc/etcskel/no-overwrite" 2>&1 >/dev/null && test -e "$HOME/$FILE"
+    # packages, and also provides mechanism to force update (via rm,mv,etc)
+    if [ -r "$TARGET_DIR/etc/etcskel/no-overwrite" ] \
+        && grep -c "^$FILE[ \t]*\$" "$TARGET_DIR/etc/etcskel/no-overwrite" 2>&1 >/dev/null \
+        && test -e "$TARGET_DIR/$FILE"
     then
         # if verbose show a diff of the two versions, if different
         if [ "" != "$ETCSKEL_UPDATE_VERBOSE" ]
         then
-            if diff -q "./$FILE" "$HOME/$FILE" 2>&1 >/dev/null
+            if diff -q "./$FILE" "$TARGET_DIR/$FILE" 2>&1 >/dev/null
             then
                 echo "$0: skipping $FILE [protected, unchanged]" >&2
             else
                 echo "$0: diff $FILE [protected, changed] NOT UPDATED" >&2
                 # send diffs to STDOUT, let STDERR be redirected to a log somewhere
                 echo ""
-                diff -c "./$FILE" "$HOME/$FILE"
+                diff -c "./$FILE" "$TARGET_DIR/$FILE"
                 echo ""
             fi
         fi
@@ -73,43 +112,45 @@ do
         RELPATH="${FILE%/*}"
         if [ "$FILE" != "$RELPATH" ]
         then
-            mkdir -p "$HOME/$RELPATH"
-            [ $? -ne 0 ] && exit $?
+            mkdir -p "$TARGET_DIR/$RELPATH"
+            [ $? -ne 0 ] && die "mkdir $TARGET_DIR/$RELPATH failed with exit status $?"
         fi
-        cp "./$FILE" "$HOME/$FILE"
+        cp "./$FILE" "$TARGET_DIR/$FILE"
     fi
 done
 
 # delete files since removed from the repo, if not protected
 IFS='
 '
-DELETE_OLD_PATHS=( $( < "$HOME/etc/etcskel/delete-old-paths" ) )
+DELETE_OLD_PATHS=( $( < "$TARGET_DIR/etc/etcskel/delete-old-paths" ) )
 for FILE in ${DELETE_OLD_PATHS[*]}
 do
     # skip comments & blank lines
     echo "$FILE" | grep -E '^[ \t]*#|^[ \t]*$' >/dev/null && continue
     # configured to leave file alone?
-    if grep -c "^$FILE[ \t]*\$" "$HOME/etc/etcskel/no-overwrite" 2>&1 >/dev/null && test -e "$HOME/$FILE"
+    if [ -r "$TARGET_DIR/etc/etcskel/no-overwrite" ] \
+        && grep -c "^$FILE[ \t]*\$" "$TARGET_DIR/etc/etcskel/no-overwrite" 2>&1 >/dev/null \
+        && test -e "$TARGET_DIR/$FILE"
     then
-        echo "$0: skipping $FILE [DEPRECATED but protected]" >&2
+        echo "$0: skipping $FILE [deprecated but protected]" >&2
     # else, if file exists try to delete it
-    elif [ -e "$HOME/$FILE" ]
+    elif [ -e "$TARGET_DIR/$FILE" ]
     then
-        if [ -f "$HOME/$FILE" ]
+        if [ -f "$TARGET_DIR/$FILE" ]
         then
             echo "$0: deleting file $FILE [deprecated]" >&2
-            rm -f "$HOME/$FILE" # --interactive=never
-        elif [ -d "$HOME/$FILE" ]
+            rm -f "$TARGET_DIR/$FILE" # --interactive=never
+        elif [ -d "$TARGET_DIR/$FILE" ]
         then
             echo "$0: deleting dir $FILE [deprecated]" >&2
-            rmdir "$HOME/$FILE"
-        elif [ -h "$HOME/$FILE" ]
+            rmdir "$TARGET_DIR/$FILE"
+        elif [ -h "$TARGET_DIR/$FILE" ]
         then
             echo "$0: removing link $FILE [deprecated]" >&2
-            unlink "$HOME/$FILE"
+            unlink "$TARGET_DIR/$FILE"
         else
             echo "$0: trying to remove special file $FILE [deprecated]" >&2
-            rm -f "$HOME/$FILE" # --interactive=never
+            rm -f "$TARGET_DIR/$FILE" # --interactive=never
         fi
     fi
 done
