@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+die() { echo "$0: $*" >&2 ; exit 1 ; }
 logger "running backup-pgsql for $LOGNAME"
 set -x
 
@@ -27,14 +29,20 @@ HOST="$( hostname )"
 [ -z "$BACKUP_ETC" ] && BACKUP_ETC="$HOME/etc/backup"
 [ -z "$BACKUP_PGSQL_KEEP_DAYS" ] && BACKUP_PGSQL_KEEP_DAYS=3
 
-[ ! -e "$BACKUP_ETC" ] && mkdir -p "$BACKUP_ETC"
-[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && exit 1
+if [ ! -e "$BACKUP_ETC" ]
+then
+    mkdir -p "$BACKUP_ETC" || die "could not mkdir $BACKUP_ETC"
+fi
+[ ! -r "$BACKUP_ETC" ] || [ ! -w "$BACKUP_ETC" ] && die "bad permissions $BACKUP_ETC"
 
 # allow disabling backups by touching a file
 [ -e "$BACKUP_ETC/disable" ] || [ -e "$BACKUP_ETC/disabled" ] && exit 0
 
-[ ! -e "$BACKUP_PGSQL_DIR" ] && mkdir -p "$BACKUP_PGSQL_DIR"
-[ ! -w "$BACKUP_PGSQL_DIR" ] && exit 1
+if [ ! -e "$BACKUP_PGSQL_DIR" ]
+then
+    mkdir -p "$BACKUP_PGSQL_DIR" || die "could not mkdir $BACKUP_PGSQL_DIR"
+fi
+[ ! -w "$BACKUP_PGSQL_DIR" ] && die "cannot write to $BACKUP_PGSQL_DIR"
 
 # delete old backups 
 find "$BACKUP_PGSQL_DIR" -daystart -mtime +$BACKUP_PGSQL_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
@@ -44,10 +52,13 @@ DB_NAMES=( $( psql -lt | awk 'BEGIN { FS = "[ \t|:]+" } $3 == "'$LOGNAME'" { pri
 for DB_NAME in $DB_NAMES
 do
     pg_dump --schema-only "$DB_NAME" > "$BACKUP_PGSQL_DIR/$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl"
+    SC=$? && [ $SC -eq 0 ] || die "pg_dump --schema-only failed with status $SC"
     pg_dump "$DB_NAME" | gzip > "$BACKUP_PGSQL_DIR/$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz"
+    SC=$? && [ $SC -eq 0 ] || die "pg_dump failed with status $SC"
 done
 # dump a pretty list of relations
 echo '\t\d' | psql | awk 'BEGIN { FS = "[ \t|:]+" } $4 { print "\\d " $3 }' | \
     psql > "$BACKUP_PGSQL_DIR/relations.$HOST.$LOGNAME.$DATEI.txt"
+SC=$? && [ $SC -eq 0 ] || die "psql relations dump failed with status $SC"
 
 exit 0
