@@ -1,0 +1,4 @@
+#!/bin/bash
+# does nothing when not run as root
+# checks if /etc/skel is up to date on system, tries to update it if not
+exit $( "$HOME/bin/etcskel-update-etcskel" )

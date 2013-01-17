@@ -1,0 +1,48 @@
+#!/bin/bash
+# Copyright 2012 Kenneth Dombrowski <kenneth@ylayali.net>
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#    http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# checks if /etc/skel is up to date, runs `etcskel-update /etc/skel` if not
+# immediately exit successfully if not root
+[ "$LOGNAME" = "root" ] || exit 0
+
+die() { echo "$0: $*" >&2 ; exit 1 ; }
+logger "running etcskel-update-etcskel for $LOGNAME"
+#set -x
+
+ETCSKEL_CONFIG="${ETCSKEL_CONFIG:-$HOME/etc/etcskel/config}"
+[ -r "$ETCSKEL_CONFIG" ] || die "cannot read config $ETCSKEL_CONFIG"
+. "$ETCSKEL_CONFIG"
+
+# does not read from root account's config, but /etc/skel explicitly
+ETCSKEL_VERSION_FILE=/etc/skel/etc/etcskel/version
+
+# requires anonymous web interface to repo via gitweb
+###ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel/version;hb=HEAD}"
+# use apache redirect to provide cleaner URL & hide reliance on gitweb specific args:
+#   Redirect 302 /etcskel-version http://git.ylayali.net/?p=etcskel.git;a=blob_plain;f=etc/etcskel/version;hb=HEAD
+# if you override ETCSKEL_VERSION_URL you probably also want to override ETCSKEL_REMOTE_URL
+ETCSKEL_VERSION_URL="${ETCSKEL_VERSION_URL:-http://git.ylayali.net/etcskel-version}"
+
+# -L causes curl to follow 3%% redirects
+REMOTE_VERSION=$( curl --silent -L "$ETCSKEL_VERSION_URL" )
+[ -r "$ETCSKEL_VERSION_FILE" ] && LOCAL_VERSION=$( cat "$ETCSKEL_VERSION_FILE" ) || LOCAL_VERSION="1970-01-01"
+
+REMOTE_DATE=$( date -d "$REMOTE_VERSION" '+%s' )
+LOCAL_DATE=$( date -d "$LOCAL_VERSION" '+%s' )
+[ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0
+
+# not up to date... rather than issue warning just try to do it
+/root/bin/etcskel-update /etc/skel 2>&1 >/dev/null
+SC=$? && [ $SC -eq 0 ] || die "failed with status code $SC"
