@@ -75,12 +75,13 @@ fi
 [ ! -e "$BACKUP_ETC/exclude" ] && touch "$BACKUP_ETC/exclude"
 
 nice tar --create \
+    --ignore-failed-read \
     --file "$BACKUP_FULL_DIR/$HOST.$LOGNAME.$DATEI.tar.gz" \
     --blocking-factor 126 \
     --label "Full Backup of $HOST for $LOGNAME on $DATEI" \
     --exclude-from "$BACKUP_ETC/exclude" \
     --gzip \
-    ${DIRS[*]}
+    ${DIRS[*]} 2>/dev/null
 SC=$? && [ $SC -eq 0 ] || die "tar --create failed with status $SC"
 
 exit 0

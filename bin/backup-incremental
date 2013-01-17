@@ -80,13 +80,14 @@ fi
 # partial tar backup since last sunday 
 # date --date=-$DATEW\ days +'%Y-%m-%d'
 nice tar --create \
+    --ignore-failed-read \
     --file "$BACKUP_INCR_DIR/$HOST.$LOGNAME.$DATEI.tar.gz" \
     --after-date "$( date --date=-$DATEW\ days +'%Y-%m-%d' )" \
     --blocking-factor 126 \
     --label "Incremental Backup of $HOST for $LOGNAME on $DATEI" \
     --exclude-from "$BACKUP_ETC/exclude" \
     --gzip \
-    ${DIRS[*]}
+    ${DIRS[*]} 2>/dev/null
 SC=$? && [ $SC -eq 0 ] || die "tar --create failed with status $SC"
 
 exit 0
