@@ -53,6 +53,7 @@ do
             ;;
     esac
 done
+shift $((OPTIND-1))
 
 TARGET_DIR="${1:-$HOME}"
 if [ ! -d "$TARGET_DIR" ]
