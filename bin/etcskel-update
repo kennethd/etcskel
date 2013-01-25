@@ -108,15 +108,15 @@ do
     # remove leading ./
     FILE="${FILE##./}"
     # skip this condition if overwriting all.
-    if [ "$FORCE_OVERWRITE_ALL" != "yes" ] || \
+    if [ "$FORCE_OVERWRITE_ALL" != "yes" ] && \
     ( \
         # DO NOT OVERWRITE files listed in no-overwrite UNLESS file does not
         # already exist on disk.  This is useful when installing things like
         # var/lib/logrotate/status which we will be passing control of to other
         # packages, and also provides mechanism to force update (via rm,mv,etc)
-        [ -r "$TARGET_DIR/etc/etcskel/no-overwrite" ] \
+        test -e "$TARGET_DIR/$FILE" \
+        && test -r "$TARGET_DIR/etc/etcskel/no-overwrite" \
         && grep -c "^$FILE[ \t]*\$" "$TARGET_DIR/etc/etcskel/no-overwrite" 2>&1 >/dev/null \
-        && test -e "$TARGET_DIR/$FILE" \
     )
     then
         # if verbose show a diff of the two versions, if different
