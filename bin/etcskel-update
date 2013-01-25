@@ -28,8 +28,31 @@
 # ETCSKEL_CONFIG: read config from file other than $HOME/etc/etcskel/config
 
 die() { echo "$0: $*" >&2 ; exit 1 ; }
+info() { echo "$0: $*" >&2 ; }
+usage() {
+    echo -e "$0 [-h] [-f] [target-dir]\n"
+    echo "  target-dir defaults to HOME (allows root to update /etc/skel)"
+    echo "  -f force overwrites everything"
+}
 
 ##set -x
+
+FORCE_OVERWRITE_ALL=
+while getopts ":fh" opt
+do
+    case $opt in
+        f)
+            FORCE_OVERWRITE_ALL="yes"
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        \?)
+            die "unknown option: -$OPTARG"
+            ;;
+    esac
+done
 
 TARGET_DIR="${1:-$HOME}"
 if [ ! -d "$TARGET_DIR" ]
@@ -71,7 +94,7 @@ else
     DIR="${TARGET_DIR////-}" # /home/kenneth -> -home-kenneth
     TARFILE="$ETCSKEL_BACKUP_DIR/etcskel-update$DIR-` date -I `.$$.tar.gz"
 fi
-# -C tells tar to cd before executing so we grab files from $HOME & not $EXPORT_DIR
+# -C tells tar to cd before executing so we grab files from $TARGET_DIR & not $EXPORT_DIR
 # --ignore-failed-read does not fail when some files do not exist in $HOME
 tar -C "$TARGET_DIR" --ignore-failed-read -czf "$TARFILE" ${FILES[@]} 2>/dev/null
 SC=$? && [ $SC -eq 0 ] || die "create backup failed with exit status $SC"
@@ -82,22 +105,26 @@ for FILE in $FILES
 do
     # remove leading ./
     FILE="${FILE##./}"
-    # DO NOT OVERWRITE files listed in no-overwrite UNLESS file does not
-    # already exist on disk.  This is useful when installing things like
-    # var/lib/logrotate/status which we will be passing control of to other
-    # packages, and also provides mechanism to force update (via rm,mv,etc)
-    if [ -r "$TARGET_DIR/etc/etcskel/no-overwrite" ] \
+    # skip this condition if overwriting all.
+    if [ "$FORCE_OVERWRITE_ALL" != "yes" ] || \
+    ( \
+        # DO NOT OVERWRITE files listed in no-overwrite UNLESS file does not
+        # already exist on disk.  This is useful when installing things like
+        # var/lib/logrotate/status which we will be passing control of to other
+        # packages, and also provides mechanism to force update (via rm,mv,etc)
+        [ -r "$TARGET_DIR/etc/etcskel/no-overwrite" ] \
         && grep -c "^$FILE[ \t]*\$" "$TARGET_DIR/etc/etcskel/no-overwrite" 2>&1 >/dev/null \
-        && test -e "$TARGET_DIR/$FILE"
+        && test -e "$TARGET_DIR/$FILE" \
+    )
     then
         # if verbose show a diff of the two versions, if different
         if [ "" != "$ETCSKEL_UPDATE_VERBOSE" ]
         then
             if diff -q "./$FILE" "$TARGET_DIR/$FILE" 2>&1 >/dev/null
             then
-                echo "$0: skipping $FILE [protected, unchanged]" >&2
+                info "skipping $FILE [protected, unchanged]"
             else
-                echo "$0: diff $FILE [protected, changed] NOT UPDATED" >&2
+                info "diff $FILE [protected, changed] NOT UPDATED"
                 # send diffs to STDOUT, let STDERR be redirected to a log somewhere
                 echo ""
                 diff -c "./$FILE" "$TARGET_DIR/$FILE"
@@ -105,7 +132,7 @@ do
             fi
         fi
     else
-        [ "" != "$ETCSKEL_UPDATE_VERBOSE" ] && echo "$0: writing $FILE" >&2
+        [ "" != "$ETCSKEL_UPDATE_VERBOSE" ] && info "writing $FILE"
         # if $FILE contains any path info, make sure directories exist
         RELPATH="${FILE%/*}"
         if [ "$FILE" != "$RELPATH" ]
@@ -114,6 +141,7 @@ do
             SC=$? && [ $SC -eq 0 ] || die "mkdir $TARGET_DIR/$RELPATH failed with exit status $SC"
         fi
         cp "./$FILE" "$TARGET_DIR/$FILE"
+        SC=$? && [ $SC -eq 0 ] || die "cp $FILE to $TARGET_DIR/$FILE failed with $SC"
     fi
 done
 
@@ -130,24 +158,24 @@ do
         && grep -c "^$FILE[ \t]*\$" "$TARGET_DIR/etc/etcskel/no-overwrite" 2>&1 >/dev/null \
         && test -e "$TARGET_DIR/$FILE"
     then
-        echo "$0: skipping $FILE [deprecated but protected]" >&2
+        info "skipping $FILE [deprecated but protected]"
     # else, if file exists try to delete it
     elif [ -e "$TARGET_DIR/$FILE" ]
     then
         if [ -f "$TARGET_DIR/$FILE" ]
         then
-            echo "$0: deleting file $FILE [deprecated]" >&2
+            info "deleting file $FILE [deprecated]"
             rm -f "$TARGET_DIR/$FILE" # --interactive=never
         elif [ -d "$TARGET_DIR/$FILE" ]
         then
-            echo "$0: deleting dir $FILE [deprecated]" >&2
+            info "deleting dir $FILE [deprecated]"
             rmdir "$TARGET_DIR/$FILE"
         elif [ -h "$TARGET_DIR/$FILE" ]
         then
-            echo "$0: removing link $FILE [deprecated]" >&2
+            info "removing link $FILE [deprecated]"
             unlink "$TARGET_DIR/$FILE"
         else
-            echo "$0: trying to remove special file $FILE [deprecated]" >&2
+            info "trying to remove special file $FILE [deprecated]"
             rm -f "$TARGET_DIR/$FILE" # --interactive=never
         fi
     fi
