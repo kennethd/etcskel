@@ -15,7 +15,6 @@
 
 use strict;
 use warnings;
-
 use Env qw (DIRECTORY_SWEEPER_CONFIG);
 use Text::ParseWords;
 
@@ -26,12 +25,9 @@ while (<CONFIG>) {
     next if /^\s*#/ or /^\s*$/;
     my @words = parse_line('\s+', 0, $_);
     next if ($#words <= 1);
-    my $dir = $words[0];
-    my $days = $words[1];
-    my $typearg = '';
-    $#words >= 3 and $typearg = '-type ' . $words[2];
-    #print $#words, ': ', $dir, ' days=', $days, ' ', $typearg, "\n";
-    `find "$dir" -daystart -mtime +$days $typearg -print0 2>/dev/null | xargs -r -0 rm -f`
+    my ($dir, $days, $type) = @words;
+    $type = $type ? "-type $type" : "";
+    `find "$dir" -daystart -mtime +$days $type -print0 2>/dev/null | xargs -r -0 rm -f`
 }
 close(CONFIG);
 exit 0;
