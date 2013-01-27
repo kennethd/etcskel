@@ -14,8 +14,9 @@ etc/backup/exclude
 etc/backup/config
 etc/etcskel/config
 etc/etcskel/dropbox-sync-dirs
+etc/directory-sweeper.conf
 # if there is a reason you want to exclude this file, you may want to bring it
-# up with the developers @ shellutils@ylayali.net
+# up with the developers @ etcskel@ylayali.net
 ###etc/etcskel/no-overwrite
 # once installed, will be managed by logrotate
 var/lib/logrotate/status

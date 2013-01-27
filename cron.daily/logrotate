@@ -1,5 +1,5 @@
 #!/bin/bash 
-/usr/sbin/logrotate -s $HOME/var/lib/logrotate/status $HOME/etc/logrotate 
+/usr/sbin/logrotate -s "$HOME"/var/lib/logrotate/status "$HOME"/etc/logrotate 
 # put config files in your ~/etc/logrotate directory. 
 # read 'man logrotate' for config options.
 # 

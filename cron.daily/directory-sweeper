@@ -1,0 +1,2 @@
+#!/bin/sh 
+[ -x "$HOME/bin/directory-sweeper" ] && "$HOME/bin/directory-sweeper"
