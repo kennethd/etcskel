@@ -30,7 +30,7 @@ while (<CONFIG>) {
     my $days = $words[1];
     my $typearg = '';
     $#words >= 3 and $typearg = '-type ' . $words[2];
-    print $#words, ': ', $dir, ' days=', $days, ' ', $typearg, "\n";
+    #print $#words, ': ', $dir, ' days=', $days, ' ', $typearg, "\n";
     `find "$dir" -daystart -mtime +$days $typearg -print0 2>/dev/null | xargs -r -0 rm -f`
 }
 close(CONFIG);
