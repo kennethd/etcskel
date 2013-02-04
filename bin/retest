@@ -4,7 +4,7 @@ import re
 import sys
 
 def usage():
-    print >> sys.stdout , '''%s regex [string, [string, [...]]]
+    print >> sys.stdout , '''%s <regex> [string, [string, [...]]]
 
 Filters input from STDIN if data is being piped to STDIN, or ARGV[2:] if
 invoked interactively.
@@ -19,10 +19,10 @@ Newlines are chomp()ed off end of line for generated output.
 
 EXAMPLES:
 
-  :! echo -e '142857142857142857142\n142857' | retest '^(\d*?)(\d+?)\2+(\d*?)$'
+  $ echo -e '142857142857142857142\\n142857' | retest '^(\d*?)(\d+?)\\2+(\d*?)$'
   142857142857142857142 matches: ('', '142857', '142')
 
-  :! retest '^(\d*?)(\d+?)\2+(\d*?)$' 142857142857142857142 142857142857 142857
+  $ retest '^(\d*?)(\d+?)\\2+(\d*?)$' 142857142857142857142 142857142857 142857
   142857142857142857142 matches: ('', '142857', '142')
   142857142857 matches: ('', '142857', '')
 
