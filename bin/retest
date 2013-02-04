@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+
+import re
+import sys
+
+def usage():
+    print >> sys.stdout , '''%s regex [string, [string, [...]]]
+
+Filters input from STDIN if data is being piped to STDIN, or ARGV[2:] if
+invoked interactively.
+
+If backreferences are captured from the input line, they will be output as
+well.
+
+Pattern input is interpolated into python raw string, so you should not need
+to add "extra" escaping.
+
+Newlines are chomp()ed off end of line for generated output.
+
+EXAMPLES:
+
+  :! echo -e '142857142857142857142\n142857' | retest '^(\d*?)(\d+?)\2+(\d*?)$'
+  142857142857142857142 matches: ('', '142857', '142')
+
+  :! retest '^(\d*?)(\d+?)\2+(\d*?)$' 142857142857142857142 142857142857 142857
+  142857142857142857142 matches: ('', '142857', '142')
+  142857142857 matches: ('', '142857', '')
+
+TODO: accept <n> -o REGEX_OPTION flags
+'''
+
+if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+    usage()
+    sys.exit(0)
+
+RE = re.compile(r'%s' % (sys.argv[1],))
+
+def print_matches(line):
+    match = re.search(RE, line)
+    if match:
+        line = line.rstrip('\n')
+        print line ,
+        if match.groups():
+            print 'matches:', match.groups()
+        else:
+            print '' # newline
+
+if not sys.stdin.isatty():
+    for line in sys.stdin:
+        print_matches(line)
+else:
+    for arg in sys.argv[2:]:
+        print_matches(arg)
+
+sys.exit(0)
