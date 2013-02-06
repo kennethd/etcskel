@@ -22,4 +22,4 @@ export PAGER=less
 export CVS_RSH=ssh
 # http://j2labs.tumblr.com/post/5181438807/quick-dirty-virtualenv-virtualenvwrapper
 export WORKON_HOME="~/.virtualenvs"
-source /usr/local/bin/virtualenvwrapper.sh
+[ -x "/usr/local/bin/virtualenvwrapper.sh" ] && . /usr/local/bin/virtualenvwrapper.sh
