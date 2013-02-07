@@ -59,3 +59,39 @@ yes_or_no()
     fi
 }
 
+# credit for the following sed script goes to:
+# Michael Paoli Michael.Paoli at cal.berkeley.edu
+# http://linuxmafia.com/pipermail/sf-lug/2013q1/009829.html
+peek()
+{
+    URL="$1"
+    st=$(printf '\040\007') # space and tab
+    lynx -dump "$URL" |
+    sed -ne \
+    '
+         :t
+         /^['"$st"']*[^'"$st"']/,/^['"$st"']*$/{
+             # first "real" paragraph and blank line
+             p
+             /^['"$st"']*$/{
+                 b n
+             }
+         }
+         n
+         b t
+         :n
+         /^['"$st"']*$/{
+             # skip blank lines
+             n
+             b n
+         }
+         :2
+         # 2nd real paragraph
+         p
+         n
+         /^['"$st"']*$/!b 2
+         q
+    '
+}
+
+
