@@ -97,32 +97,36 @@ peek()
 }
 
 lstree()
-# long-format directory listing for directory heirarchy
+# heirarchically sorted long-format directory listing for all nodes in path
 {
     local LSTREE_PATH="${1:-$PWD}"
-    if [ "" = "`which realpath`" ]; then
-        echo "lstree: realpath not found" >&2
-        return 0
-    fi
-    LSTREE_PATH="`realpath \"$LSTREE_PATH\" `"
-    echo "LSTREE_PATH = $LSTREE_PATH"
-    local LSTREE_BASE=
-    local LSTREE_NODE=
     local NODES=( "$LSTREE_PATH" )
+    # if realpath is not installed, an alternative is:
+    # perl -MCwd -e 'print Cwd::realpath($ARGV[0])'
+    if [ "" != "`which realpath`" ]; then
+        if [ -L "$LSTREE_PATH" ]; then
+            LSTREE_PATH="`realpath \"$LSTREE_PATH\" `"
+            # if top-level is symlink, include both it & realpath dir in output
+            NODES=( "${NODES[@]}" "$LSTREE_PATH" )
+        else
+            # any usefulness switching to realpath here?
+            LSTREE_PATH="`realpath \"$LSTREE_PATH\" `"
+        fi
+    fi
+    # starting @ the end of LSTREE_PATH, work backwards chopping off / as we go
+    local LSTREE_LHS= ; local LSTREE_RHS=
     while [ "$LSTREE_PATH" != "" ]
     do
         # LSTREE_PATH = /home/kenneth/clients/kenneth/perl5lib
-        LSTREE_BASE="${LSTREE_PATH##*/}"
-        # LSTREE_BASE = perl5lib
-        LSTREE_NODE="${LSTREE_PATH%%/$LSTREE_BASE*}"
-        # LSTREE_NODE = /home/kenneth/clients/kenneth
-        NODES=( "${NODES[@]}" "$LSTREE_NODE" )
-        LSTREE_PATH="$LSTREE_NODE"
+        LSTREE_LHS="${LSTREE_PATH%/*}"
+        LSTREE_RHS="${LSTREE_PATH#$LSTREE_LHS}${LSTREE_RHS}"
+        # LHS is /home/kenneth/clients/kenneth ; RHS is /perl5lib
+        if [ "$LSTREE_LHS" != "" ]; then
+            NODES=( "${NODES[@]}" "$LSTREE_LHS" )
+        fi
+        LSTREE_PATH="$LSTREE_LHS"
     done
     NODES=( "${NODES[@]}" "/" )
-    echo "NODES = ${NODES[@]}"
-    # unsorted directory listing of all nodes
     ls -ldU "${NODES[@]}"
 }
-
 
