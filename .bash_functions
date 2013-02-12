@@ -35,7 +35,9 @@ search_and_replace()
     local search="$1";
     local replace="$2";
     local grepdir="${3:-$PWD}";
-    grep -rl "$search" "$grepdir" | xargs -r sed -i -e "s#$search#$replace#g"
+    ### grep -rl "$search" "$grepdir" | xargs -r sed -i -e "s#$search#$replace#g"
+    # do not modify private version control files
+    find "$grepdir" -type f -wholename '*/.svn/*' -wholename '*/.git/*' -wholename '*/CVS/*' -prune -exec sed -i -e "s#${search}#${replace}g" '{}' \;
 }
 
 yes_or_no()
