@@ -29,17 +29,6 @@ askpass()
     fi
 }
 
-search_and_replace()
-# relies on GNU sed's -i (in-place) option
-{
-    local search="$1";
-    local replace="$2";
-    local grepdir="${3:-$PWD}";
-    ### grep -rl "$search" "$grepdir" | xargs -r sed -i -e "s#$search#$replace#g"
-    # do not modify private version control files
-    find "$grepdir" -type f -wholename '*/.svn/*' -wholename '*/.git/*' -wholename '*/CVS/*' -prune -exec sed -i -e "s#${search}#${replace}g" '{}' \;
-}
-
 yes_or_no()
 # prompt user for a y/n response
 {
@@ -59,6 +48,17 @@ yes_or_no()
         echo "Please answer 'y' or 'n'" >&2
         yes_or_no "$prompt"
     fi
+}
+
+search_and_replace()
+# relies on GNU sed's -i (in-place) option
+{
+    local search="$1";
+    local replace="$2";
+    local grepdir="${3:-$PWD}";
+    ### grep -rl "$search" "$grepdir" | xargs -r sed -i -e "s#$search#$replace#g"
+    # do not modify private version control files
+    find "$grepdir" -type f -wholename '*/.svn/*' -wholename '*/.git/*' -wholename '*/CVS/*' -prune -exec sed -i -e "s#${search}#${replace}g" '{}' \;
 }
 
 # credit for the following sed script goes to:
@@ -94,6 +94,35 @@ peek()
          /^['"$st"']*$/!b 2
          q
     '
+}
+
+lstree()
+# long-format directory listing for directory heirarchy
+{
+    local LSTREE_PATH="${1:-$PWD}"
+    if [ "" = "`which realpath`" ]; then
+        echo "lstree: realpath not found" >&2
+        return 0
+    fi
+    LSTREE_PATH="`realpath \"$LSTREE_PATH\" `"
+    echo "LSTREE_PATH = $LSTREE_PATH"
+    local LSTREE_BASE=
+    local LSTREE_NODE=
+    local NODES=( "$LSTREE_PATH" )
+    while [ "$LSTREE_PATH" != "" ]
+    do
+        # LSTREE_PATH = /home/kenneth/clients/kenneth/perl5lib
+        LSTREE_BASE="${LSTREE_PATH##*/}"
+        # LSTREE_BASE = perl5lib
+        LSTREE_NODE="${LSTREE_PATH%%/$LSTREE_BASE*}"
+        # LSTREE_NODE = /home/kenneth/clients/kenneth
+        NODES=( "${NODES[@]}" "$LSTREE_NODE" )
+        LSTREE_PATH="$LSTREE_NODE"
+    done
+    NODES=( "${NODES[@]}" "/" )
+    echo "NODES = ${NODES[@]}"
+    # unsorted directory listing of all nodes
+    ls -ldU "${NODES[@]}"
 }
 
 
