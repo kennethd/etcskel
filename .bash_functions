@@ -1,8 +1,79 @@
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#                        S C R I P T   H E L P E R S                        #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# This section lists functions often useful when writing scripts, for your
+# copy-paste convenience.  In particular, you probably do not want to call
+# die() from a terminal session.
+
+die() { echo "$0: $*" >&2 ; exit 1 ; }
+warn() { echo "$0: WARNING: $*" >&2 ; }
+info() { echo "$0: $*" >&2 ; }
+
+# based on a post by ghostdog74
+# http://stackoverflow.com/questions/2312762/compare-difference-of-two-arrays-in-bash
+array_diff()
+{
+    awk -v a1="$1" -v a2="$2" 'BEGIN {
+        m = split(a1, A1, " ")
+        n = split(a2, t, " ")
+        for (i = 1; i <= n; i++) {
+            A2[t[i]]
+        }
+        for (j in A2) { print "\t" j ":" A2[j] "\n" }
+        for (i = 1; i <= m; i++) {
+            printf i": "A1[i]"\n"
+            if ( ! (A1[i] in A2) ) {
+                printf A1[i]" "
+            }
+        }
+    }'
+}
+
+
+array_intersect()
+# based on Ken Bertelson's response (2010 Oct 25) to:
+# http://stackoverflow.com/questions/1063347/passing-arrays-as-parameters-in-bash
+#
+# Note the required calling convention:
+# 
+#   $ a1=( "one" "two" "three four" "five" "six" )
+#   $ a2=( three four five six seven )
+#   $ array_intersect a1[@] a2[@]
+#   five six
+#
+# We are passing the NAMES of the arrays which exist in calling scope (& are
+# thus inherited by our function) (the "[@]" evidently being part of the name
+# of a bash array, not only a dereferencing syntax?)
+#
+# $1 then becomes the name we passed in: a1[@].  ${!x} is bash's "Inderection"
+# mechanism; similar to Perl's ability to have "variable variables": 
+#
+#   perl -e '$name = "Ken"; $var = "name"; print "name is $$var\n";'
+#
+# see also: http://tldp.org/LDP/abs/html/arrays.html
+{
+    local ARR1=( "${!1}" )
+    local ARR2=( "${!2}" )
+    local COMMON=( )
+    # ${!ARRAYNAME[@]} means "the indices of ARRAYNAME"
+    for x in ${!ARR1[@]}; do
+        for y in ${!ARR2[@]}; do
+            #echo "$x $y comparing ${ARR1[x]} <-> ${ARR2[y]}" >&2
+            if [ "${ARR1[x]}" == "${ARR2[y]}" ]; then
+                COMMON=( "${COMMON[@]}" "${ARR2[y]}" )
+            fi
+        done
+    done
+    echo "${COMMON[@]}"
+}
+
 askpass()
 # turn off echoing. ask for password twice.
 # compare & re-prompt if passwords are different or empty
-# use cmd subst to collect output:  NEW_PASS=$( getpass )
+# use cmd subst to collect output:  NEW_PASS=$( askpass )
 {
     # http://billharlan.com/pub/papers/Bourne_shell_idioms.html
     # Here's how to ask for a password without echoing the characters.
@@ -50,8 +121,20 @@ yes_or_no()
     fi
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#                          S H E L L   H E L P E R S                        #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# This section provides some helper functions to achieve common tasks from the
+# command line.
+
 search_and_replace()
-# relies on GNU sed's -i (in-place) option
+# recurse through a directory structure replacing all instances of one string
+# with another.  Avoids changing metadata files for many VCSs.  Most useful
+# when working within a VCS-controlled directory, where you have access to
+# diff tools to examine what has changed, and revert tools to undo unexpected
+# changes.  relies on GNU sed's -i (in-place) option
 {
     local search="$1";
     local replace="$2";
@@ -128,5 +211,35 @@ lstree()
     done
     NODES=( "${NODES[@]}" "/" )
     ls -ldU "${NODES[@]}"
+}
+
+# checksums files in two directories.
+# considers filename and checksum only.
+# files with differences will be listed with size & timestamp.
+dircmp()
+{
+    local DIR1="$1"
+    local DIR2="$2"
+    # export into your env to use sha*sum, etc..
+    local DIRCMP_CHKSUM="${DIRCMP_CHKSUM:-md5sum}"
+    # check required args
+    if [ -z "$DIR1" ] || [ -z "$DIR2" ]; then
+        echo -e "dircmp: need 2 args.\n\t$DIR1\n\t$DIR2" >&2
+        return 0
+    fi
+    # check directories exist
+    if [ ! -d "$DIR1" ] || [ ! -d "$DIR2" ]; then
+        echo "dircmp: both args must be directories" >&2
+        ls -ld "$DIR1" "$DIR2" >&2
+        return 0
+    fi
+    # list filenames only
+    local DIR1_LS=( $( ls -1 "$DIR1" | sort ) )
+    local DIR2_LS=( $( ls -1 "$DIR2" | sort ) )
+    # comparing lists of both dirs, sort each file into one of:
+    local DIR1_ONLY=( array_diff "$DIR1_LS" "$DIR2_LS" )
+    local DIR2_ONLY=( array_diff "$DIR2_LS" "$DIR1_LS" )
+    local BOTH=( )
+    # 
 }
 
