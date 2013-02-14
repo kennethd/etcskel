@@ -12,32 +12,81 @@ die() { echo "$0: $*" >&2 ; exit 1 ; }
 warn() { echo "$0: WARNING: $*" >&2 ; }
 info() { echo "$0: $*" >&2 ; }
 
-# based on a post by ghostdog74
-# http://stackoverflow.com/questions/2312762/compare-difference-of-two-arrays-in-bash
-array_diff()
+in_array()
+# NOTE this does not actually work on an array!
+# I could not figure out how to pass an array as a parameter, and instead am
+# passing "${ARRAYNAME[@]}", which explodes the array into separate parameters
+# of each element.  All this function does, then, is test whether the first
+# parameter matches any of the remaining parameters
 {
-    awk -v a1="$1" -v a2="$2" 'BEGIN {
-        m = split(a1, A1, " ")
-        n = split(a2, t, " ")
-        for (i = 1; i <= n; i++) {
-            A2[t[i]]
-        }
-        for (j in A2) { print "\t" j ":" A2[j] "\n" }
-        for (i = 1; i <= m; i++) {
-            printf i": "A1[i]"\n"
-            if ( ! (A1[i] in A2) ) {
-                printf A1[i]" "
-            }
-        }
-    }'
+    # echo "in_array: $# arguments"
+    local needle="$1"
+    shift
+    local haystack=("$@")
+    # i is assigned to each VALUE in turn... not KEY
+    for i in "${haystack[@]}"; do
+        if [ "$needle" = "$i" ]; then
+            # echo "in_array match: $needle" >&2
+            return 0
+        fi
+    done
+    # not found 
+    return 1
 }
 
+array_diff()
+# returns elements in arr1 but not in arr2
+#
+# order is not important, repeated elements are not currently accounted for
+#
+# Note the required calling convention (no $, no {}):
+# 
+#   $ a1=( "one" "two" "three four" "five" "six" )
+#   $ a2=( three four five six seven )
+#   $ array_diff a1[@] a2[@]
+#   "one" "two" "three four"
+#
+# see comments for array_intersect
+#
+# KNOWN BUG:
+#
+# The last line of this function echos values with correct quoting:
+#
+#   ++ echo one two 'three four'
+#
+# but recipient doesn't receive it that way:
+# 
+#   $ for x in $( array_diff a1[@] a2[@] ) ; do echo $x ; done 
+#   one
+#   two
+#   three
+#   four
+# 
+# no IFS tricks seem to provide a workaround
+#
+#   for x in $( IFS=$'\n' array_diff a1[@] a2[@] ) ; do echo $x ; done
+{
+    local ARR1=( "${!1}" )
+    local ARR2=( "${!2}" )
+    local UNIQ=( )
+    # ${!ARRAYNAME[@]} means "the indices of ARRAYNAME"
+    for x in "${!ARR1[@]}"; do
+        for y in "${!ARR2[@]}"; do
+            if [ "${ARR1[x]}" == "${ARR2[y]}" ]; then
+                # done with y... move on to next x
+                continue 2
+            fi
+        done
+        UNIQ=( "${UNIQ[@]}" "${ARR1[x]}" )
+    done
+    echo "${UNIQ[@]}"
+}
 
 array_intersect()
 # based on Ken Bertelson's response (2010 Oct 25) to:
 # http://stackoverflow.com/questions/1063347/passing-arrays-as-parameters-in-bash
 #
-# Note the required calling convention:
+# Note the required calling convention (no $, no {}):
 # 
 #   $ a1=( "one" "two" "three four" "five" "six" )
 #   $ a2=( three four five six seven )
@@ -45,8 +94,7 @@ array_intersect()
 #   five six
 #
 # We are passing the NAMES of the arrays which exist in calling scope (& are
-# thus inherited by our function) (the "[@]" evidently being part of the name
-# of a bash array, not only a dereferencing syntax?)
+# thus inherited by our function)
 #
 # $1 then becomes the name we passed in: a1[@].  ${!x} is bash's "Inderection"
 # mechanism; similar to Perl's ability to have "variable variables": 
@@ -237,9 +285,9 @@ dircmp()
     local DIR1_LS=( $( ls -1 "$DIR1" | sort ) )
     local DIR2_LS=( $( ls -1 "$DIR2" | sort ) )
     # comparing lists of both dirs, sort each file into one of:
-    local DIR1_ONLY=( array_diff "$DIR1_LS" "$DIR2_LS" )
-    local DIR2_ONLY=( array_diff "$DIR2_LS" "$DIR1_LS" )
-    local BOTH=( )
+    local DIR1_ONLY=( $( array_diff DIR1_LS[@] DIR2_LS[@] ) )
+    local DIR2_ONLY=( $( array_diff DIR2_LS[@] DIR1_LS[@] ) )
+    local BOTH=( $( array_intersect DIR1_LS[@] DIR2_LS[@] ) )
     # 
 }
 
