@@ -19,14 +19,12 @@ in_array()
 # of each element.  All this function does, then, is test whether the first
 # parameter matches any of the remaining parameters
 {
-    # echo "in_array: $# arguments"
     local needle="$1"
     shift
     local haystack=("$@")
     # i is assigned to each VALUE in turn... not KEY
     for i in "${haystack[@]}"; do
         if [ "$needle" = "$i" ]; then
-            # echo "in_array match: $needle" >&2
             return 0
         fi
     done
@@ -37,16 +35,15 @@ in_array()
 array_diff()
 # returns elements in arr1 but not in arr2
 #
-# order is not important, repeated elements are not currently accounted for
+# order is not important, repeated elements are not accounted for
 #
-# Note the required calling convention (no $, no {}):
+# Note the required calling convention (no $, no {}), see comments for
+# array_intersect for explanation:
 # 
 #   $ a1=( "one" "two" "three four" "five" "six" )
 #   $ a2=( three four five six seven )
 #   $ array_diff a1[@] a2[@]
 #   "one" "two" "three four"
-#
-# see comments for array_intersect
 #
 # KNOWN BUG:
 #
@@ -263,7 +260,8 @@ lstree()
 
 # checksums files in two directories.
 # considers filename and checksum only.
-# files with differences will be listed with size & timestamp.
+# files with differences will be listed with size & timestamp in status report.
+# prints status report to STDERR, returns 0 if everything checks out or 1.
 dircmp()
 {
     local DIR1="$1"
@@ -288,6 +286,39 @@ dircmp()
     local DIR1_ONLY=( $( array_diff DIR1_LS[@] DIR2_LS[@] ) )
     local DIR2_ONLY=( $( array_diff DIR2_LS[@] DIR1_LS[@] ) )
     local BOTH=( $( array_intersect DIR1_LS[@] DIR2_LS[@] ) )
-    # 
+    # dirs are the same?
+    local OK=True
+    if [ -z "${DIR1_ONLY[@]}" ]; then
+        OK=False
+        for f in "${DIR1_ONLY[@]}"; do
+            echo " < $f only in $DIR1" >&2
+        done
+    fi
+    if [ -z "${DIR2_ONLY[@]}" ]; then
+        OK=False
+        for f in "${DIR2_ONLY[@]}"; do
+            echo " > $f only in $DIR2" >&2
+        done
+    fi
+    local DIR1_HASH= ; local DIR2_HASH=
+    for f in "${BOTH[@]}"; do
+        echo -n "   $f ... " >&2
+        # md5sum & shaXXXsum alike print: HASH FILENAME
+        DIR1_HASH=$( "$DIRCMP_CHKSUM" "$DIR1/$f" | awk '{print $1}' )
+        DIR2_HASH=$( "$DIRCMP_CHKSUM" "$DIR2/$f" | awk '{print $1}' )
+        if [ "$DIR1_HASH" != "$DIR2_HASH" ]; then
+            OK=False
+            echo "FAIL" >&2 # newline
+            ls -l "$DIR1/$f" "$DIR2/$f" >&2
+        else
+            echo "ok" >&2 # newline
+        fi
+    done
+    # return boolean
+    if [ "$OK" = "False" ]; then
+        return 1
+    fi
+    return 0
 }
+
 
