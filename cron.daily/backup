@@ -1,32 +1,8 @@
 #!/bin/bash
+
 # vary minute (1-9) to avoid all users' backups from kicking off @ the same time
 RANGE=9; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 1";
-[ -r "$HOME/etc/backup/config" ] && source "$HOME/etc/backup/config"
-
-at 00:1$MIN >/dev/null 2>&1 <<-EOQ
-"$HOME/bin/backup-conf" 2>/dev/null
-# try to do mysql backup if we have a ~/.my.cnf
-[ "$LOGNAME" != "root" ] && [ -e "$HOME/.my.cnf" ] && [ -x "$HOME/bin/backup-mysql" ] && "$HOME/bin/backup-mysql" 2>/dev/null
-# try to do pg backup if we are authenticated for shell access 
-echo '\d' | psql 1>&2 2>/dev/null && [ -x "$HOME/bin/backup-pgsql" ] && "$HOME/bin/backup-pgsql" 2>/dev/null
+at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
+"$HOME/bin/backup" 2>/dev/null
 EOQ
 
-# within <<-HEREDOC leading tabs are ignored, but NOT leading spaces
-if [ "$FULL_BACKUP_DAILY" = "yes" ]; then
-	at 00:3$MIN >/dev/null 2>&1 <<-EOQ
-	"$HOME/bin/backup-full" 2>/dev/null
-	EOQ
-else
-	# full backup on Sunday, incremental since Sunday other days
-	at 00:3$MIN >/dev/null 2>&1 <<-EOQ
-	DATEW=$( date +'%w' )
-	if [ "$DATEW" = "0" ]
-	then
-		"$HOME/bin/backup-full" 2>/dev/null
-	else
-		"$HOME/bin/backup-incremental" 2>/dev/null
-	fi
-	EOQ
-fi
-
-# vim: set noexpandtab shiftwidth=8 softtabstop=8 tabstop=8:
