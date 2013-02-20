@@ -68,6 +68,7 @@ if [ "$LOGNAME" = "root" ]; then
     which dpkg >/dev/null && dpkg --get-selections > "$BACKUP_CONF_DIR/dpkg--get-selections.$HOST.$DATEI.txt"
     which mysqldump >/dev/null && mysqldump --opt --databases mysql > "$BACKUP_CONF_DIR/mysql.$HOST.$DATEI.sql"
     which lvm >/dev/null && lvm dumpconfig > "$BACKUP_CONF_DIR/lvm-dumpconfig.$HOST.$DATEI.txt"
+    which update-alternatives >/dev/null && update-alternatives --get-selections > "$BACKUP_CONF_DIR/update-alternatives--get-selections.$HOST.$DATEI.txt"
 fi
 
 exit 0
