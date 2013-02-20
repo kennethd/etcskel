@@ -1,17 +1,21 @@
 #!/bin/bash
 [ -r "$HOME/etc/backup/config" ] && source "$HOME/etc/backup/config"
-# MIN is between 5-15 minutes, used to schedule filesystem backups long enough
-# in the future so we are confident the db backups have finished, also acts as
-# another level of job-staggering, to help prevent all users' backups kicking
-# off at the same time (see also cron.daily/backup)
-RANGE=15; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 5";
 
+# schedule conf & db backups to happen 1 minute in the future
+# no need to wait for db dumps to finish before getting your shell back
+at now + 1 minute >/dev/null 2>&1 <<-EOQ
 "$HOME/bin/backup-conf" 2>/dev/null
 # try to do mysql backup if we have a ~/.my.cnf
 [ "$LOGNAME" != "root" ] && [ -e "$HOME/.my.cnf" ] && [ -x "$HOME/bin/backup-mysql" ] && "$HOME/bin/backup-mysql" 2>/dev/null
 # try to do pg backup if we are authenticated for shell access 
 echo '\d' | psql 1>&2 2>/dev/null && [ -x "$HOME/bin/backup-pgsql" ] && "$HOME/bin/backup-pgsql" 2>/dev/null
+EOQ
 
+# MIN is between 5-15 minutes, used to schedule filesystem backups long enough
+# in the future so we are confident the db backups have finished, also acts as
+# another level of job-staggering, to help prevent all users' backups kicking
+# off at the same time (see also cron.daily/backup)
+RANGE=15; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 5";
 # within <<-HEREDOC leading tabs are ignored, but NOT leading spaces
 if [ "$FULL_BACKUP_DAILY" = "yes" ]; then
 	at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
@@ -29,6 +33,6 @@ else
 	fi
 	EOQ
 fi
-
 echo "filesystem backup scheduled to run $MIN minutes from now" >&2
+
 # vim: set noexpandtab shiftwidth=8 softtabstop=8 tabstop=8:
