@@ -7,7 +7,7 @@ use strict;
 
 use Getopt::Mixed "nextOption";
 
-my ($number, $squash, $strip, $multiline, $test, @comment_chars);
+my ($number, $squash, $strip, $multiline, $test, $width, @comment_chars);
 
 sub usage {
     print "$0 [options]
@@ -19,7 +19,8 @@ sub usage {
   -m    --multiline         try to strip /* ... */ multi-line comments 
   -n    --line-numbers      prefix output with line numbers
   -s    --squash-whitespace reduce all multi-line whitespace to single line
-  -S    --strip-whitespace  strip all blank lines ";
+  -S    --strip-whitespace  strip all blank lines
+  -w n  --width=n           chop output @ n characters";
     exit(0);
 }
 
@@ -31,6 +32,7 @@ Getopt::Mixed::init(qw/
     s squash-whitespace>s
     S strip-whitespace
     t test>t
+    w=i width>w
     h help>h
     /);
 
@@ -42,7 +44,8 @@ while ( my ($opt, $val) = nextOption())
     $opt eq 'n' and do { $number = 1; };
     $opt eq 's' and do { $squash = 1; };
     $opt eq 'S' and do { $strip = 1; };
-    $opt eq 't' and do { $test = 1; };
+    $opt eq 't' and do { $test = 1; }; # intentionally undocumented
+    $opt eq 'w' and do { $width = $val; };
     $opt eq 'h' and do { usage(); };
 }
 push(@comment_chars, '#') unless @comment_chars;
@@ -52,17 +55,10 @@ my $i = 0; # current line number
 my $pfxs = join('|', @comment_chars); # join into ORed regex syntax
 my $last_line_was_blank = 1; # true @ start of file in case first line of file is blank
 
-format =
-@>>>>>: @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$i, $_
-.
-
 sub process_line {
     $i++;
 
-    # ^\s*(\;|\#|\/\/|\"|\-\-).*$
-    ### print "^\\s*($pfxs).*\$\n";
-    # skip comment lines
+    # skip single-line comment lines
     return if /^\s*($pfxs).*$/;
 
     # blank lines: need to squash or strip?
@@ -73,8 +69,8 @@ sub process_line {
                 return; 
             }
             else {
-                # output completely blank line (no number) 
-                print;
+                # output completely blank line (no line number) 
+                print "\n"; # note: potentially losing whitespace
                 $last_line_was_blank = 1;
                 return;
             }
@@ -84,8 +80,18 @@ sub process_line {
         }
     }
 
-    # use format to prefix lines with number or output full line
-    $number ? write : print;
+    # line is going to be output. how should it be processed?
+    my $line = $_;
+
+    if ($number) {
+        $line = sprintf('% 6d: %-s', $i, $_);
+    }
+
+    if ($width) {
+        $line = substr($line, 0, $width) . "\n";
+    }
+
+    print $line;
     $last_line_was_blank = 0;
     # added for exim.conf
     print "\n" if /^end$/;
@@ -120,7 +126,7 @@ should be the first lines of output
 
  -- sql style comment 
 
-given options -c '//' -c ';' -c '"' -c '#' -c '--' this should be the second line of valid output
+given options -c '//' -c ';' -c '"' -c '#' -c '--' this should be the second chunk of valid output
 
 
 
