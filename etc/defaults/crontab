@@ -4,6 +4,10 @@
 # set MAILTO to the address you want output to go to
 #MAILTO=you@example.com
 
+# from crontab(5): Note in particular that if you want a PATH other than
+# "/usr/bin:/bin", you will need to set it in the crontab file.
+PATH=/usr/local/bin:/usr/bin:/bin
+
 # any scripts in these directories will be run at the appropriate time
 @reboot   [ -d "$HOME/cron.reboot"  ] && /bin/run-parts $HOME/cron.reboot
 @hourly   [ -d "$HOME/cron.hourly"  ] && /bin/run-parts $HOME/cron.hourly
