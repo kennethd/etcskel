@@ -1,0 +1,137 @@
+#!/usr/bin/perl -w
+# strip bash-style comments /#.*/ and blank lines from source
+# code/conf files, maintain a line count & output all remaining 
+# lines prefixed with their line number
+
+use strict;
+
+use Getopt::Mixed "nextOption";
+
+my ($number, $squash, $strip, $multiline, $test, @comment_chars);
+
+sub usage {
+    print "$0 [options]
+
+  -c c  --comment-prefix=c  strip lines beginning with c (default '#')
+                            you may pass multiple -c flags
+  -C    --all-comments      strip all known comment types, same as: 
+                            -c '#' -c '//' -c ';' -c '\"' -c '--'
+  -m    --multiline         try to strip /* ... */ multi-line comments 
+  -n    --line-numbers      prefix output with line numbers
+  -s    --squash-whitespace reduce all multi-line whitespace to single line
+  -S    --strip-whitespace  strip all blank lines ";
+    exit(0);
+}
+
+Getopt::Mixed::init(qw/
+    c=s comment-prefix>c
+    C all-comments>C
+    m multiline>m multi-line>m
+    n line-numbers>n
+    s squash-whitespace>s
+    S strip-whitespace
+    t test>t
+    h help>h
+    /);
+
+while ( my ($opt, $val) = nextOption())
+{
+    $opt eq 'c' and do { push(@comment_chars, $val); };
+    $opt eq 'C' and do { @comment_chars = (@comment_chars, ('#', '//', ';', '"', '--')); };
+    $opt eq 'm' and do { $multiline = 1; };
+    $opt eq 'n' and do { $number = 1; };
+    $opt eq 's' and do { $squash = 1; };
+    $opt eq 'S' and do { $strip = 1; };
+    $opt eq 't' and do { $test = 1; };
+    $opt eq 'h' and do { usage(); };
+}
+push(@comment_chars, '#') unless @comment_chars;
+
+my $i = 0; # current line number
+@comment_chars = map { s/(.)/\\$1/g; $_; } @comment_chars; # escape every char 
+my $pfxs = join('|', @comment_chars); # join into ORed regex syntax
+my $last_line_was_blank = 1; # true @ start of file in case first line of file is blank
+
+format =
+@>>>>>: @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$i, $_
+.
+
+sub process_line {
+    $i++;
+
+    # ^\s*(\;|\#|\/\/|\"|\-\-).*$
+    ### print "^\\s*($pfxs).*\$\n";
+    # skip comment lines
+    return if /^\s*($pfxs).*$/;
+
+    # blank lines: need to squash or strip?
+    if (/^\s*$/) {
+        if ($squash) {
+            # output single blank line for any series of blank lines.
+            if ($last_line_was_blank) {
+                return; 
+            }
+            else {
+                # output completely blank line (no number) 
+                print;
+                $last_line_was_blank = 1;
+                return;
+            }
+        }
+        elsif ($strip) {
+            return;
+        }
+    }
+
+    # use format to prefix lines with number or output full line
+    $number ? write : print;
+    $last_line_was_blank = 0;
+    # added for exim.conf
+    print "\n" if /^end$/;
+}
+
+if ($test) {
+    while (<DATA>) { process_line($_); }
+}
+else {
+    while (<>) { process_line($_); }
+}
+
+
+exit(0);
+
+__END__
+#!/shebang
+
+# line three comment 
+
+
+
+this line follows 3 blank lines, which follow a # comment, which follows a
+blank line, which follows a shebang.  being the first valid input, these
+should be the first lines of output
+
+// javascript style comment 
+
+; samba conf style 
+
+" ~/.vimrc style comment 
+
+ -- sql style comment 
+
+given options -c '//' -c ';' -c '"' -c '#' -c '--' this should be the second line of valid output
+
+
+
+following three blank lines
+
+/*  one line multi-liner may be removed with prefix only -c '/*' */
+
+
+   # whitespace may precede any comment-prefix 
+trailing comments are not removed # like this
+
+/* multiline comment line one
+   multiline comment line two */
+
