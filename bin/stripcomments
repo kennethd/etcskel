@@ -1,7 +1,4 @@
 #!/usr/bin/perl -w
-# strip bash-style comments /#.*/ and blank lines from source
-# code/conf files, maintain a line count & output all remaining 
-# lines prefixed with their line number
 
 use strict;
 
@@ -88,6 +85,7 @@ sub process_line {
     }
 
     if ($width) {
+        chomp($line); # if $line is shorter than $width, we only want 1 \n
         $line = substr($line, 0, $width) . "\n";
     }
 
@@ -113,14 +111,14 @@ __END__
 # line three comment 
 
 
-
-this line follows 3 blank lines, which follow a # comment, which follows a
+this line follows 2 blank lines, which follow a # comment, which follows a
 blank line, which follows a shebang.  being the first valid input, these
 should be the first lines of output
 
 // javascript style comment 
 
 ; samba conf style 
+    ; and another not at beginning of line
 
 " ~/.vimrc style comment 
 
@@ -132,12 +130,32 @@ given options -c '//' -c ';' -c '"' -c '#' -c '--' this should be the second chu
 
 following three blank lines
 
-/*  one line multi-liner may be removed with prefix only -c '/*' */
+/*  one line multi-liner should be removed with -m */
 
+this line and the 
+following should 
+be single spaced. 
+if there is a blank line between the previous lines when trimming to a width
+ >= 28 or so, the appended \n is being added to the one already there
 
    # whitespace may precede any comment-prefix 
 trailing comments are not removed # like this
 
 /* multiline comment line one
    multiline comment line two */
+
+stuck here between two multi-line comments to make sure they are not overly greedy
+
+what if a multi-line comment /* starts at end 
+of one line?
+...is it ever legal for a multi-line 
+comment */ to end before end-of-line?
+
+what about a python multi-line string """ that happens to contain /* 
+and */ ?"""
+
+or a HEREDOC <<-EOQ
+    /* these parser problems are getting tiresome.
+    are multi-line comments worth it? */
+EOQ
 
