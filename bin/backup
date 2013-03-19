@@ -24,7 +24,7 @@ if [ "$FULL_BACKUP_DAILY" = "yes" ]; then
 else
 	# full backup on Sunday, incremental since Sunday other days
 	at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
-	DATEW=$( date +'%w' )
+	DATEW=$( /bin/date +'%w' )
 	if [ "$DATEW" = "0" ]
 	then
 		"$HOME/bin/backup-full" 2>/dev/null
