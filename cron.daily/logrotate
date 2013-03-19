@@ -1,16 +1,16 @@
-#!/bin/bash 
-/usr/sbin/logrotate -s "$HOME"/var/lib/logrotate/status "$HOME"/etc/logrotate 
-# put config files in your ~/etc/logrotate directory. 
+#!/bin/bash
+/usr/sbin/logrotate -s "$HOME"/var/lib/logrotate/status "$HOME"/etc/logrotate.d
+# put config files in your ~/etc/logrotate.d directory.
 # read 'man logrotate' for config options.
-# 
+#
 # sample config file :
-# 
+#
 # $ cat ~/etc/logrotate/procmail
-# /home/kenneth/var/log/procmail/procmail.log { 
-#         daily 
-#         compress 
-#         delaycompress 
-#         rotate 5 
+# /home/kenneth/var/log/procmail/procmail.log {
+#         daily
+#         compress
+#         delaycompress
+#         rotate 5
 #         missingok
-#         notifempty 
+#         notifempty
 # }

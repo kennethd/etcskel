@@ -1,0 +1,21 @@
+
+# this example logrotate configuration will rotate all *.log files in my
+# $HOME/var/log directory (not subdirectories!) daily, keeping 5 days worth of
+# old logs around, and compressing the old ones after the first day.  It does
+# not raise an error if no file matches the filename spec, and doesn't bother
+# rotating empty files.  For more options and examples, see `man 8 logrotate`.
+
+# To enable this for your $HOME directory, uncomment the stanza below & change
+# "kenneth" to your own username (chances are if you try to rotate my logs,
+# you will just get a lot of permission errors).  You can add as many config
+# files to this directory as you want, and they will all run daily.
+
+#/home/kenneth/var/log/*.log { 
+#        daily 
+#        compress 
+#        delaycompress 
+#        rotate 5 
+#        missingok
+#        notifempty 
+#}
+
