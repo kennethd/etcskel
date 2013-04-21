@@ -9,6 +9,7 @@
 export PATH
 # if using keychain set SSH env vars appropriately
 [ -f "$HOME/.keychainrc" ] && . "$HOME/.keychainrc"
+# PYTHONSTARTUP enables readline history in python interpreter
 [ -f "$HOME/.pythonstartup" ] && PYTHONSTARTUP="$HOME/.pythonstartup"
 export PYTHONSTARTUP
 [ -d "$HOME/perl5/lib/perl5" ] && PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
