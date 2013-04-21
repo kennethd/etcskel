@@ -4,7 +4,7 @@
 
 # user's bin should be first in PATH, other HOME-based paths come immediately
 # after (listed before here)
-[ -d "$HOME/perl5/bin" ] && [ "$PATH" == "${PATH##$HOME/bin/perl5}" ] && PATH="$HOME/bin/perl5:$PATH"
+[ -d "$HOME/perl5/bin" ] && [ "$PATH" == "${PATH##$HOME/perl5/bin}" ] && PATH="$HOME/perl5/bin:$PATH"
 [ -d "$HOME/bin" ] && [ "$PATH" == "${PATH##$HOME/bin}" ] && PATH="$HOME/bin:$PATH"
 export PATH
 # if using keychain set SSH env vars appropriately
