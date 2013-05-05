@@ -6,6 +6,7 @@
 # like no-overwrite
 bin/etcskel-dropbox-backups-sync
 # moved to etc/default
+etc/defaults/crontab
 etc/defaults
 # moved to etc/logrotate.d
 etc/logrotate
