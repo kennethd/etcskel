@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 [ -r "$HOME/etc/backup/config" ] && source "$HOME/etc/backup/config"
 
 # schedule conf & db backups to happen 1 minute in the future
@@ -11,6 +12,9 @@ at now + 1 minute >/dev/null 2>&1 <<-EOQ
 echo '\d' | psql 1>&2 2>/dev/null && [ -x "$HOME/bin/backup-pgsql" ] && "$HOME/bin/backup-pgsql" 2>/dev/null
 EOQ
 
+LOGFILE="${BACKUP_LOGFILE:-$HOME/var/log/backup.log}"
+DATEW=$( /bin/date +%w )
+
 # MIN is between 5-15 minutes, used to schedule filesystem backups long enough
 # in the future so we are confident the db backups have finished, also acts as
 # another level of job-staggering, to help prevent all users' backups kicking
@@ -18,21 +22,22 @@ EOQ
 RANGE=15; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 5";
 # within <<-HEREDOC leading tabs are ignored, but NOT leading spaces
 if [ "$FULL_BACKUP_DAILY" = "yes" ]; then
+	echo FULL BACKUP
 	at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
-	"$HOME/bin/backup-full" 2>/dev/null
+	"$HOME/bin/backup-full" >"$LOGFILE" 2>&1
 	EOQ
 else
+	echo FULL BACKUP ON SUNDAY ELSE INCREMENTAL
 	# full backup on Sunday, incremental since Sunday other days
 	at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
-	DATEW=$( /bin/date +'%w' )
 	if [ "$DATEW" = "0" ]
 	then
-		"$HOME/bin/backup-full" 2>/dev/null
+		"$HOME/bin/backup-full" >"$LOGFILE" 2>&1
 	else
-		"$HOME/bin/backup-incremental" 2>/dev/null
+		"$HOME/bin/backup-incremental" >"$LOGFILE" 2>&1
 	fi
 	EOQ
 fi
-echo "filesystem backup scheduled to run $MIN minutes from now" >&2
 
+logger "$LOGNAME filesystem backup scheduled to run $MIN minutes from now"
 # vim: set noexpandtab shiftwidth=8 softtabstop=8 tabstop=8:
