@@ -22,12 +22,10 @@ DATEW=$( /bin/date +%w )
 RANGE=15; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 5";
 # within <<-HEREDOC leading tabs are ignored, but NOT leading spaces
 if [ "$FULL_BACKUP_DAILY" = "yes" ]; then
-	echo FULL BACKUP
 	at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
 	"$HOME/bin/backup-full" >"$LOGFILE" 2>&1
 	EOQ
 else
-	echo FULL BACKUP ON SUNDAY ELSE INCREMENTAL
 	# full backup on Sunday, incremental since Sunday other days
 	at now + $MIN minutes >/dev/null 2>&1 <<-EOQ
 	if [ "$DATEW" = "0" ]
