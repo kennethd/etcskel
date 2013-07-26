@@ -55,14 +55,14 @@ DB_LIST=$( echo "SHOW DATABASES" | mysql --skip-column-names | grep -v informati
 for DB_NAME in $DB_LIST
 do
     # db dumps must be readable only by owner
-    touch "$BACKUP_MYSQL_DIR"/mysqldump.$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz && \
-        chmod 0600 "$BACKUP_MYSQL_DIR"/mysqldump.$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz && \
-        mysqldump --opt --single-transaction --databases $DB_NAME | gzip > "$BACKUP_MYSQL_DIR"/mysqldump.$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz
+    touch "$BACKUP_MYSQL_DIR"/$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz && \
+        chmod 0600 "$BACKUP_MYSQL_DIR"/$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz && \
+        mysqldump --opt --single-transaction --databases $DB_NAME | gzip > "$BACKUP_MYSQL_DIR"/$DB_NAME.$HOST.$LOGNAME.$DATEI.sql.gz
     SC=$? && [ $SC -eq 0 ] || die "mysqldump for $LOGNAME of $DB_NAME failed on $HOST with status $SC"
 
-    touch "$BACKUP_MYSQL_DIR"/mysqldump.$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl && \
-        chmod 0600 "$BACKUP_MYSQL_DIR"/mysqldump.$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl && \
-        mysqldump --opt --no-data --single-transaction --databases $DB_NAME > "$BACKUP_MYSQL_DIR"/mysqldump.$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl
+    touch "$BACKUP_MYSQL_DIR"/$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl && \
+        chmod 0600 "$BACKUP_MYSQL_DIR"/$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl && \
+        mysqldump --opt --no-data --single-transaction --databases $DB_NAME > "$BACKUP_MYSQL_DIR"/$DB_NAME.$HOST.$LOGNAME.$DATEI.ddl
     SC=$? && [ $SC -eq 0 ] || die "mysqldump --no-data for $LOGNAME of $DB_NAME failed on $HOST with status $SC"
 done
 
