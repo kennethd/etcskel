@@ -216,11 +216,11 @@ will be overwritten or skipped, and a diff of any files mentioned in
 ''~/etc/etcskel/no-overwrite'' if your copy is different from the repo version.
 Status messages go to STDERR and diffs to STDOUT, so you can do:
 
-  $ etcskel-update >/tmp/my-etcskel-update.diff
+  $ etcskel-update >/tmp/$LOGNAME-etcskel-update.diff
 
 to see the status output on your console, and then investigate the file
-''/tmp/my-etcskel-update.diff'' to review the differences in your locally
-managed files.
+''/tmp/$LOGNAME-etcskel-update.diff'' to review the differences in your
+locally managed files.
 
 In any case, a backup is created every time you run the script, so there should
 always be a path for recovery (even if the upgrade script itself gets broken you
