@@ -48,18 +48,19 @@ fi
 find "$BACKUP_MYSQL_DIR" -daystart -mtime +$BACKUP_MYSQL_KEEP_DAYS -type f -print0 | xargs -r -0 rm -f
 
 # for most users, dump all databases that user has permission to access.
+DB_LIST=$( echo "SHOW DATABASES" | mysql --skip-column-names | tr "\n" " " )
 # for root, force only the system dbs
-[ "$LOGNAME" = "root" ] && DB_LIST="--databases mysql information_schema"
+[ "$LOGNAME" = "root" ] && DB_LIST="mysql information_schema"
 
 # db dumps must be readable only by owner
 touch "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.sql.gz && \
     chmod 0600 "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.sql.gz && \
-    mysqldump --opt $DB_LIST | gzip > "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.sql.gz
+    mysqldump --opt --databases $DB_LIST | gzip > "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.sql.gz
 SC=$? && [ $SC -eq 0 ] || die "mysqldump failed with status $SC"
 
 touch "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.ddl && \
     chmod 0600 "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.ddl && \
-    mysqldump --opt --no-data $DB_LIST > "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.ddl
+    mysqldump --opt --no-data --databases $DB_LIST > "$BACKUP_MYSQL_DIR"/mysqldump.$HOST.$LOGNAME.$DATEI.ddl
 SC=$? && [ $SC -eq 0 ] || die "mysqldump --no-data failed with status $SC"
 
 exit 0
