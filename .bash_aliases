@@ -15,4 +15,7 @@ alias ll='ls -l'
 alias moby='dict -d moby-thesaurus'
 alias rdiff='diff -bBqr --exclude=CVS'
 alias screen='screen -h 1200'
+
+alias reverse-words="awk '{ for (i=NF; i>0; i--) printf(\"%s \", \$i) } { printf(\"%s\", \"\n\") }'"
+
 # vi: set syntax=bash
