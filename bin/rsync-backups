@@ -15,10 +15,10 @@
 set -x
 die() { echo "$0: $*" >&2 ; exit 1 ; }
 [ -r "$HOME/etc/backup/rsync" ] && source "$HOME/etc/backup/rsync"
-[ "$RSYNC_BACKUPS_ENABLED" = "yes" ] || exit 0
-[ "" = "$RSYNC_BACKUPS_HOST" ] && die "RSYNC_BACKUPS_HOST is required"
-[ "" = "$RSYNC_BACKUPS_USER" ] && die "RSYNC_BACKUPS_USER is required"
-[ "" = "$RSYNC_BACKUPS_PATH" ] && die "RSYNC_BACKUPS_PATH is required"
+[ x"$RSYNC_BACKUPS_ENABLED" = x"yes" ] || exit 0
+[ x"" = x"$RSYNC_BACKUPS_HOST" ] && die "RSYNC_BACKUPS_HOST is required"
+[ x"" = x"$RSYNC_BACKUPS_USER" ] && die "RSYNC_BACKUPS_USER is required"
+[ x"" = x"$RSYNC_BACKUPS_PATH" ] && die "RSYNC_BACKUPS_PATH is required"
 ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "mkdir -p \"$RSYNC_BACKUPS_PATH\""
 [ $? -eq 0 ] || die "failed to login or failed to create directory $RSYNC_BACKUPS_PATH"
 RSYNC_OPTIONS="$RSYNC_OPTIONS -rx --partial-dir='$RSYNC_BACKUPS_PATH/.partial' --bwlimit=256"
