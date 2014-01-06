@@ -14,14 +14,21 @@
 # limitations under the License.
 set -x
 die() { echo "$0: $*" >&2 ; exit 1 ; }
+# source default config
 [ -r "$HOME/etc/backup/rsync" ] && source "$HOME/etc/backup/rsync"
+# allow checking host-specific configs into source control
+[ -r "$HOME/etc/backup/rsync.$HOSTNAME" ] && source "$HOME/etc/backup/rsync.$HOSTNAME"
+# exit successfully if not configured to run on this host
 [ x"$RSYNC_BACKUPS_ENABLED" = x"yes" ] || exit 0
+# exit with error if required options are not provided
 [ x"" = x"$RSYNC_BACKUPS_HOST" ] && die "RSYNC_BACKUPS_HOST is required"
 [ x"" = x"$RSYNC_BACKUPS_USER" ] && die "RSYNC_BACKUPS_USER is required"
 [ x"" = x"$RSYNC_BACKUPS_PATH" ] && die "RSYNC_BACKUPS_PATH is required"
+# test login, permissions
 ssh -l "$RSYNC_BACKUPS_USER" "$RSYNC_BACKUPS_HOST" "mkdir -p \"$RSYNC_BACKUPS_PATH\""
 [ $? -eq 0 ] || die "failed to login or failed to create directory $RSYNC_BACKUPS_PATH"
+# try to do rsync
 RSYNC_OPTIONS="$RSYNC_OPTIONS -rx --partial-dir='$RSYNC_BACKUPS_PATH/.partial' --bwlimit=256"
-rsync "$RSYNC_OPTIONS" "$HOME/backups" $RSYNC_BACKUPS_USER@$RSYNC_BACKUPS_HOST:"'$RSYNC_BACKUPS_PATH'"
+rsync $RSYNC_OPTIONS "$HOME/backups" $RSYNC_BACKUPS_USER@$RSYNC_BACKUPS_HOST:"'$RSYNC_BACKUPS_PATH'"
 [ $? -eq 0 ] || die "rsync failed"
 exit 0
