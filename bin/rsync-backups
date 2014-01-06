@@ -14,6 +14,8 @@
 # limitations under the License.
 set -x
 die() { echo "$0: $*" >&2 ; exit 1 ; }
+# if HOSTNAME is not set, get it from uname
+[ -z "$HOSTNAME" ] && HOSTNAME=`uname -n 2>/dev/null || echo unknown`
 # source default config
 [ -r "$HOME/etc/backup/rsync" ] && source "$HOME/etc/backup/rsync"
 # allow checking host-specific configs into source control
