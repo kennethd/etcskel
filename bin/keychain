@@ -1,16 +1,22 @@
 #!/bin/sh
+
 # Copyright 1999-2005 Gentoo Foundation
+# Copyright 2007 Aron Griffis <agriffis@n01se.net>
+# Copyright 2009-2010 Funtoo Technologies, LLC 
+# lockfile() Copyright 2009 Parallels, Inc.
+
 # Distributed under the terms of the GNU General Public License v2
+
 # Originally authored by Daniel Robbins <drobbins@gentoo.org>
 # Maintained August 2002 - April 2003 by Seth Chandler <sethbc@gentoo.org>
-# Maintained April 2004 - present by Aron Griffis <agriffis@gentoo.org>
-# $Id: keychain.sh 96 2006-10-24 22:01:32Z agriffis $
+# Maintained and rewritten April 2004 - July 2007 by Aron Griffis <agriffis@n01se.net>
+# Maintained July 2009 - present by Daniel Robbins <drobbins@funtoo.org>
 
-version=2.6.8
+version=2.7.1
 
 PATH="/usr/bin:/bin:/sbin:/usr/sbin:/usr/ucb:${PATH}"
 
-maintainer="agriffis@gentoo.org"
+maintainer="drobbins@funtoo.org"
 zero=`basename "$0"`
 unset mesglog
 unset myaction
@@ -21,12 +27,15 @@ ignoreopt=false
 noaskopt=false
 noguiopt=false
 nolockopt=false
-lockwait=30
+lockwait=5
 openssh=unknown
 sunssh=unknown
+confhost=unknown
+sshconfig=false
 quickopt=false
 quietopt=false
 clearopt=false
+color=true
 inheritwhich=local-once
 unset stopwhich
 unset timeout
@@ -39,17 +48,20 @@ unset mykeys
 keydir="${HOME}/.keychain"
 unset envf
 evalopt=false
+queryopt=false
 confirmopt=false
+absoluteopt=false
+systemdopt=false
 unset ssh_confirm
+unset GREP_OPTIONS
 
-type tput >/dev/null 2>/dev/null
-{
-    BLUE="$(tput setaf 4)"
-    CYAN="$(tput setaf 6)"
-    GREEN="$(tput setaf 2)"
-    RED="$(tput setaf 1)"
-    OFF="$(tput sgr0)"
-}
+BLUE="[34;01m"
+CYAN="[36;01m"
+CYANN="[36m"
+GREEN="[32;01m"
+RED="[31;01m"
+PURP="[35;01m"
+OFF="[0m"
 
 # GNU awk and sed have regex issues in a multibyte environment.  If any locale
 # variables are set, then override by setting LC_ALL
@@ -99,8 +111,14 @@ die() {
 # Display the version information
 versinfo() {
     qprint
-    qprint "${GREEN}KeyChain ${version}; ${BLUE}http://www.gentoo.org/proj/en/keychain/${OFF}"
-    qprint "Copyright 2002-2004 Gentoo Foundation; Distributed under the GPL"
+    qprint "   Copyright ${CYANN}2002-2006${OFF} Gentoo Foundation;"
+    qprint "   Copyright ${CYANN}2007${OFF} Aron Griffis;"
+    qprint "   Copyright ${CYANN}2009-2010${OFF} Funtoo Technologies, LLC;"
+    qprint "   lockfile() Copyright ${CYANN}2009${OFF} Parallels, Inc."
+    qprint
+    qprint " Keychain is free software: you can redistribute it and/or modify"
+    qprint " it under the terms of the ${CYANN}GNU General Public License version 2${OFF} as"
+    qprint " published by the Free Software Foundation."
     qprint
 }
 
@@ -108,7 +126,7 @@ versinfo() {
 # Display the help information. There's no really good way to use qprint for
 # this...
 helpinfo() {
-    cat >&2 <<EOHELP
+    cat >&1 <<EOHELP
 SYNOPSIS
     keychain [ ${GREEN}-hkQqV${OFF} ] [ ${GREEN}--clear${OFF} ${GREEN}--help${OFF} ${GREEN}--ignore-missing${OFF} ${GREEN}--noask${OFF}
     ${GREEN}--nocolor${OFF} ${GREEN}--nogui${OFF} ${GREEN}--nolock${OFF} ${GREEN}--quick${OFF} ${GREEN}--quiet${OFF} ${GREEN}--version${OFF} ]
@@ -138,8 +156,17 @@ OPTIONS
         program before being used for authentication. See the ${GREEN}-c${OFF} option for
         ssh-add(1).
 
+    ${GREEN}--absolute${OFF}
+        Any arguments to "--dir" are interpreted to be absolute. The default
+        behavior is to append "/.keychain" to the argument for backwards
+        compatibility.
+
     ${GREEN}--dir${OFF} ${CYAN}dirname${OFF}
         Keychain will use dirname rather than \$HOME/.keychain
+
+    ${GREEN}--query${OFF}
+        Keychain will print lines in KEY=value format representing the
+        values which are set by the agents.
 
     ${GREEN}--eval${OFF}
         Keychain will print lines to be evaluated in the shell on stdout. It
@@ -155,7 +182,8 @@ OPTIONS
         non-standard place.
 
     ${GREEN}-h${OFF} ${GREEN}--help${OFF}
-        Show help that looks remarkably like this man-page.
+        Show help that looks remarkably like this man-page. As of 2.6.10,
+        help is sent to stdout so it can be easily piped to a pager.
 
     ${GREEN}--host${OFF} ${CYAN}name${OFF}
         Set alternate hostname for creation of pidfiles
@@ -189,8 +217,10 @@ OPTIONS
         want the older behavior.
 
     ${GREEN}--lockwait${OFF} ${CYAN}seconds${OFF}
-        How long to wait for the lock to become available. Defaults to 30
-        seconds. ${GREEN}-1${OFF} indicates to wait forever.
+        How long to wait for the lock to become available. Defaults to 5
+        seconds. Specify a value of zero or more. If the lock cannot be
+        acquired within the specified number of seconds, then this keychain
+        process will forcefully acquire the lock.
 
     ${GREEN}--noask${OFF}
         This option tells keychain do everything it normally does (ensure
@@ -217,6 +247,9 @@ OPTIONS
         Kill currently running agent processes. The following values are
         valid for "which":
 
+    ${GREEN}--systemd${OFF}
+        Inject environment variables into the systemd ${GREEN}--user${OFF} session.
+
         all      Kill all agent processes and quit keychain immediately.
                  Prior to keychain-2.5.0, this was the behavior of the bare
                  "--stop" option.
@@ -237,7 +270,8 @@ OPTIONS
 
     ${GREEN}-q${OFF} ${GREEN}--quiet${OFF}
         Only print messages in case of warning, error or required
-        interactivity.
+        interactivity. As of version 2.6.10, this also suppresses
+        "Identities added" messages for ssh-agent.
 
     ${GREEN}--timeout${OFF} ${CYAN}minutes${OFF}
         Set a timeout in minutes on your keys. This is conveyed to ssh-agent
@@ -288,192 +322,53 @@ verifykeydir() {
     fi
 }
 
-# synopsis: now previous_now
-# Returns some seconds value on stdout, for timing things.  Accepts a
-# previous_now parameter which should be the last value returned.  (No data can
-# be persistent because this is called from a subshell.) If this is called less
-# than once per minute on a non-GNU system then it might skip a minute.
-now() {
-    if [ -n "$BASH_VERSION" -a "$SECONDS" -ge 0 ] 2>/dev/null; then
-        echo $SECONDS
-        return 0
-    fi
+lockfile() {
+	# This function originates from Parallels Inc.'s OpenVZ vpsreboot script
 
-    if now_seconds=`date +%s 2>/dev/null` \
-            && [ "$now_seconds" -gt 0 ] 2>/dev/null; then
-        if [ $now_seconds -lt "$1" ] 2>/dev/null; then
-            warn "time went backwards, taking countermeasures"
-            echo `expr $1 + 1`
-        else
-            echo $now_seconds
+	# Description: This function attempts to acquire the lock. If it succeeds,
+	# it returns 0. If it fails, it returns 1. This function retuns immediately
+	# and only tries to acquire the lock once. 
+
+        local tmpfile="$lockf.$$"
+
+        echo $$ >"$tmpfile" 2>/dev/null || exit
+        if ln "$tmpfile" "$lockf" 2>/dev/null; then
+                rm -f "$tmpfile"
+		havelock=true && return 0
         fi
-        return 0
-    fi
-
-    # Don't use awk -F'[: ]' here because Solaris awk can't handle it, a regex
-    # field separator needs gawk or nawk.  It's easier to simply avoid awk in
-    # this case.
-    if now_seconds=`LC_ALL=C date 2>/dev/null | sed 's/:/ /g' | xargs | cut -d' ' -f6` \
-            && [ "$now_seconds" -ge 0 ] 2>/dev/null; then
-        if [ -n "$1" ]; then
-            # how many minutes have passed previously?
-            now_mult=`expr $1 / 60`
-            if [ "$now_seconds" -lt `expr $1 % 60` ]; then
-                # another minute has passed
-                now_mult=`expr $now_mult + 1`
-            fi
-            # accumulate minutes in now_seconds
-            now_seconds=`expr 60 \* $now_mult + $now_seconds`
+        if kill -0 `cat $lockf 2>/dev/null` 2>/dev/null; then
+                rm -f "$tmpfile"
+        	return 1
+	fi
+        if ln "$tmpfile" "$lockf" 2>/dev/null; then
+                rm -f "$tmpfile"
+		havelock=true && return 0
         fi
-        echo $now_seconds
-        return 0
-    fi
-
-    return 1
+        rm -f "$tmpfile" "$lockf" && return 1
 }
 
-# synopsis: trylock
-# Utility for takelock()
-trylock() {
-    tl_pid=$$
-    if tl_error=`umask 0377; echo $tl_pid 2>&1 >"$lockf"`; then
-        havelock=true
-        return 0
-    else
-        return 1
-    fi
-}
-
-# synopsis: takelock
-# Attempts to get the lockfile $lockf.  If locking isn't available, just returns.
-# If locking is available but can't get the lock, exits with error.
 takelock() {
-    # Check if we already have the lock.  Since this is not a threaded prog,
-    # using this global is safe
-    $havelock && return 0
+	# Description: This function calls lockfile() multiple times if necessary
+	# to try to acquire the lock. It returns 0 on success and 1 on failure.
+	# Change in behavior: if timeout expires, we will forcefully acquire lock.
 
-    # Honor --nolock
-    if $nolockopt; then
-        unset lockf
-        return 0
-    fi
+	[ "$havelock" = "true" ] && return 0	
+	[ "$nolockopt" = "true" ] && return 0
 
-    # Check for old-style lock; unlikely.
-    # Redirect stderr since -h might not be implemented, in which case we
-    # blunder ahead.
-    if [ -h "$olockf" ] 2>/dev/null; then
-        error "please remove old-style lock: $olockf"
-        return 1
-    fi
+	# First attempt:
+	lockfile && return 0
 
-    # Catch the case that an existing lockfile might, for some strange reason,
-    # have the wrong permissions
-    chmod 0400 "$lockf" 2>/dev/null
-
-    tl_faking=false
-    tl_emptyonce=false
-    tl_emptytwice=false
-    tl_announced=false
-    unset tl_oldpid tl_lastmesg
-
-    # Set up timer
-    if [ $lockwait = -1 ]; then
-        true    # don't bother to set tl_start, tl_end, tl_current
-    elif tl_start=`now`; then
-        tl_end=`expr $tl_start + $lockwait`
-        tl_current=$tl_start
-    else
-        # we'll fake it the best we can
-        tl_faking=true
-        tl_start=0
-        tl_end=`expr $lockwait \* 10`
-        tl_current=0
-    fi
-    tl_nextmesg=$tl_current
-
-    # Try once initially for lockwait==0; doesn't hurt to try again immediately
-    # in the loop
-    trylock && return 0
-
-    # Try to lock for $lockwait seconds
-    while [ $lockwait = -1 -o $tl_current -lt $tl_end ]; do
-        trylock && return 0
-
-        # advance our timer
-        if [ $lockwait != -1 ]; then
-            if $tl_faking; then
-                tl_current=`expr $tl_current + 1`
-            else
-                tl_current=`now $tl_current`
-            fi
-        fi
-
-        # read the lock
-        tl_pid=`cat "$lockf" 2>/dev/null`
-
-        if [ -n "$tl_pid" ]; then
-            # test for a stale lock
-            kill -0 "$tl_pid" 2>/dev/null
-            if [ $? != 0 ]; then
-                # Avoid a race condition; another keychain might have started at
-                # this point.  If the pid is the same as the last time we
-                # checked, then go ahead and remove the stale lock.  Otherwise
-                # remember the pid and try again.
-                if [ "$tl_pid" = "$tl_oldpid" ]; then
-                    warn "removing stale lock for pid $tl_pid"
-                    rm -f "$lockf"
-                else
-                    tl_oldpid="$tl_pid"
-                fi
-                # try try again, no sleep required
-                continue
-            fi
-
-            # don't keep the user in suspense
-            if [ $lockwait != -1 ]; then
-                if [ $tl_current -eq $tl_nextmesg ]; then
-                    tl_timeleft=`expr $tl_end - $tl_current`
-                    if [ $tl_timeleft -gt 0 ]; then
-                        mesg "Waiting $tl_timeleft seconds for lock, held by pid $tl_pid"
-                    fi
-                    tl_nextmesg=`expr $tl_current + 1`
-                fi
-            else
-                $tl_announced || mesg "Waiting for lock, held by pid $tl_pid"
-                tl_announced=true
-            fi
-
-            # nb: fall through to sleep...
-
-        # tl_pid is blank
-        elif $tl_emptytwice; then
-            error "failed to remove empty lock file"
-            break
-        elif $tl_emptyonce; then
-            warn "removing empty lock file"
-            rm -f "$lockf"
-            tl_emptytwice=true
-            # give this another go-around, no sleep required
-            continue
-        else
-            tl_emptyonce=true
-            # fall through to sleep
-        fi
-
-        # sleep for a bit to wait for the keychain process holding the lock
-        sleep 0.1 >/dev/null 2>&1 && continue
-        perl -e 'select(undef, undef, undef, 0.1)' \
-            >/dev/null 2>&1 && continue
-        # adjust granularity of tl_current stepping
-        $tl_faking && tl_current=`expr $tl_current + 9`
-        sleep 1
-    done
-
-    # no luck
-    [ -n "$tl_pid" ] || unset tl_pid    # ${var+...} relies on set vs. unset
-    error "failed to get the lock${tl_pid+, held by pid $tl_pid}: $tl_error"
-    return 1
+	local counter=0
+	mesg "Waiting $lockwait seconds for lock..."
+	while [ "$counter" -lt "$(( $lockwait * 2 ))" ]
+	do
+		lockfile && return 0
+		sleep 0.5; counter=$(( $counter + 1 ))
+	done 
+	rm -f "$lockf" && lockfile && return 0
+	return 1
 }
+
 
 # synopsis: droplock
 # Drops the lock if we're holding it.
@@ -496,7 +391,7 @@ findpids() {
 
     # Try systems where we know what to do first
     case "$OSTYPE" in
-        AIX|*bsd*|*BSD*|CYGWIN|darwin*|Linux|OSF1)
+        AIX|*bsd*|*BSD*|CYGWIN|darwin*|Linux|linux-gnu|OSF1)
             fp_psout=`ps x 2>/dev/null` ;;      # BSD syntax
         HP-UX)
             fp_psout=`ps -u $me 2>/dev/null` ;; # SysV syntax
@@ -507,6 +402,8 @@ findpids() {
                 *)
                     fp_psout=`ps x 2>/dev/null` ;;      # BSD syntax
             esac ;;
+        GNU|gnu)
+            fp_psout=`ps -g 2>/dev/null` ;;     # GNU Hurd syntax
     esac
 
     # If we didn't get a match above, try a list of possibilities...
@@ -521,7 +418,7 @@ findpids() {
     # Ignore defunct ssh-agents (bug 28599)
     if [ -n "$fp_psout" ]; then
         echo "$fp_psout" | \
-            awk "/defunct/{next}
+            awk "BEGIN{IGNORECASE=1} /defunct/{next}
                 /$fp_prog-[a]gen/{print \$1}" | xargs
         return 0
     fi
@@ -549,7 +446,7 @@ stopagent() {
     case "$stopwhich" in
         all)
             kill $stop_mypids >/dev/null 2>&1
-            mesg "All $me's $stop_prog-agent(s) ($stop_mypids) are now stopped"
+            mesg "All ${CYANN}$me${OFF}'s $stop_prog-agents stopped: ${CYANN}$stop_mypids${OFF}"
             ;;
 
         others)
@@ -576,7 +473,7 @@ stopagent() {
 
             if [ -n "$stop_mynewpids" ]; then
                 kill $stop_mynewpids >/dev/null 2>&1
-                mesg "Other $me's $stop_prog-agent(s) ($stop_mynewpids) are now stopped"
+                mesg "Other ${CYANN}$me${OFF}'s $stop_prog-agents stopped: ${CYANN}$stop_mynewpids${OFF}"
             else
                 mesg "No other $stop_prog-agent(s) than keychain's $stop_except found running"
             fi
@@ -585,7 +482,7 @@ stopagent() {
         mine)
             if [ $stop_except -gt 0 ] 2>/dev/null; then
                 kill $stop_except >/dev/null 2>&1
-                mesg "Keychain $stop_prog-agent $stop_except is now stopped"
+                mesg "Keychain $stop_prog-agents stopped: ${CYANN}$stop_except${OFF}"
             else
                 mesg "No keychain $stop_prog-agent found running"
             fi
@@ -797,7 +694,7 @@ startagent() {
     start_tester="$inheritwhich: $start_mypids $start_fwdflg "
     case "$start_tester" in
         none:*" $start_pid "*|*-once:*" $start_pid "*)
-            mesg "Found existing ${start_prog}-agent ($start_pid)"
+            mesg "Found existing ${start_prog}-agent: ${CYANN}$start_pid${OFF}"
             return 0
             ;;
 
@@ -821,7 +718,6 @@ startagent() {
     esac
 
     # Init the bourne-formatted pidfile
-    mesg "Initializing $start_pidf file..."
     ( umask 0177 && :> "$start_pidf"; )
     if [ $? != 0 ]; then
         rm -f "$start_pidf" "$start_cshpidf" "$start_fishpidf" 2>/dev/null
@@ -830,7 +726,6 @@ startagent() {
     fi
 
     # Init the csh-formatted pidfile
-    mesg "Initializing $start_cshpidf file..."
     ( umask 0177 && :> "$start_cshpidf"; )
     if [ $? != 0 ]; then
         rm -f "$start_pidf" "$start_cshpidf" "$start_fishpidf" 2>/dev/null
@@ -839,7 +734,6 @@ startagent() {
     fi
 
     # Init the fish-formatted pidfile
-    mesg "Initializing $start_fishpidf file..."
     ( umask 0177 && :> "$start_fishpidf"; )
     if [ $? != 0 ]; then
         rm -f "$start_pidf" "$start_cshpidf" "$start_fishpidf" 2>/dev/null
@@ -853,7 +747,7 @@ startagent() {
 
         # Start the agent.
         # Branch again since the agents start differently
-        mesg "Starting ${start_prog}-agent"
+        mesg "Starting ${start_prog}-agent..."
         if [ "$start_prog" = ssh ]; then
             start_out=`ssh-agent`
         elif [ "$start_prog" = gpg ]; then
@@ -863,7 +757,7 @@ startagent() {
                 unset start_gpg_timeout
             fi
             # the 1.9.x series of gpg spews debug on stderr
-            start_out=`gpg-agent --daemon $start_gpg_timeout 2>/dev/null`
+            start_out=`gpg-agent --daemon --write-env-file $start_gpg_timeout 2>/dev/null`
         else
             error "I don't know how to start $start_prog-agent (2)"
             return 1
@@ -1031,21 +925,23 @@ ssh_f() {
 gpg_listmissing() {
     unset glm_missing
 
+    GPG_TTY=`tty`
+
     # Parse $gpgkeys into positional params to preserve spaces in filenames
-    set -f;        # disable globbing
+    set -f          # disable globbing
     glm_IFS="$IFS"  # save current IFS
     IFS="
-"                  # set IFS to newline
+"                   # set IFS to newline
     set -- $gpgkeys
     IFS="$glm_IFS"  # restore IFS
-    set +f         # re-enable globbing
+    set +f          # re-enable globbing
 
     for glm_k in "$@"; do
         # Check if this key is known to the agent.  Don't know another way...
-        if echo | env -i PATH="$PATH" GPG_AGENT_INFO="$GPG_AGENT_INFO" \
+        if echo | env -i GPG_TTY="$GPG_TTY" PATH="$PATH" GPG_AGENT_INFO="$GPG_AGENT_INFO" \
                 gpg --no-options --use-agent --no-tty --sign --local-user "$glm_k" -o- >/dev/null 2>&1; then
             # already know about this key
-            mesg "Known gpg key: ${BLUE}${glm_k}${OFF}"
+            mesg "Known gpg key: ${CYANN}${glm_k}${OFF}"
             continue
         else
             # need to add this key
@@ -1068,13 +964,13 @@ ssh_listmissing() {
     unset slm_missing
 
     # Parse $sshkeys into positional params to preserve spaces in filenames
-    set -f;        # disable globbing
+    set -f          # disable globbing
     slm_IFS="$IFS"  # save current IFS
     IFS="
-"                  # set IFS to newline
+"                   # set IFS to newline
     set -- $sshkeys
     IFS="$slm_IFS"  # restore IFS
-    set +f         # re-enable globbing
+    set +f          # re-enable globbing
 
     for slm_k in "$@"; do
         # Fingerprint current user-specified key
@@ -1084,7 +980,7 @@ ssh_listmissing() {
         case " $sshavail " in
             *" $slm_finger "*)
                 # already know about this key
-                mesg "Known ssh key: ${BLUE}${slm_k}${OFF}"
+                mesg "Known ssh key: ${CYANN}${slm_k}${OFF}"
                 ;;
             *)
                 # need to add this key
@@ -1118,8 +1014,11 @@ add_sshkey() {
 # synopsis: parse_mykeys
 # Sets $sshkeys and $gpgkeys based on $mykeys
 parse_mykeys() {
+    # Possible path to the private key: if --confhost variable used.
+    pkeypath="$1"
+
     # Parse $mykeys into positional params to preserve spaces in filenames
-    set -f;        # disable globbing
+    set -f         # disable globbing
     pm_IFS="$IFS"  # save current IFS
     IFS="
 "                  # set IFS to newline
@@ -1136,6 +1035,8 @@ parse_mykeys() {
                 add_sshkey "$HOME/.ssh/$pm_k" ; continue
             elif [ -f "$HOME/.ssh2/$pm_k" ]; then
                 add_sshkey "$HOME/.ssh2/$pm_k" ; continue
+            elif [ -f "$pkeypath" ]; then
+                add_sshkey "$pkeypath"; continue
             fi
         fi
 
@@ -1213,6 +1114,31 @@ setagents() {
     fi
 }
 
+# synopsis: confpath
+# Return private key path if found in ~/.ssh/config SSH configuration file.
+# Input: the name of the host we would like to connect to.
+confpath() {
+  declare -A keypaths
+  while IFS= read -r line; do
+     # get the Host directives
+     if [[ $line == *"Host "* ]]; then
+       host=true
+       h=$(echo $line | awk '{print $2}')
+     fi
+
+     if [[ $line == *IdentityFile* ]] && $host ; then
+       i=$(echo $line | awk '{print $2}')
+       keypaths["$h"]="$i"
+     fi
+
+  done < ~/.ssh/config 
+
+  if test "${keypaths["$1"]+isset}"; then
+    echo "${keypaths[$1]}"
+  fi
+}
+
+
 # synopsis: wantagent prog
 # Return 0 (true) or 1 (false) depending on whether prog is one of the agents in
 # agentsopt
@@ -1271,12 +1197,21 @@ while [ -n "$1" ]; do
         --confirm)
             confirmopt=true
             ;;
+        --absolute)
+            absoluteopt=true
+            ;;
         --dir)
             shift
             case "$1" in
                 */.*) keydir="$1" ;;
                 '')   die "--dir requires an argument" ;;
-                *)    keydir="$1/.keychain" ;;  # be backward-compatible
+                *)
+                    if $absoluteopt; then
+                        keydir="$1"
+                    else
+                        keydir="$1/.keychain" # be backward-compatible
+                    fi
+                    ;;
             esac
             ;;
         --env)
@@ -1289,6 +1224,9 @@ while [ -n "$1" ]; do
             ;;
         --eval)
             evalopt=true
+            ;;
+        --query)
+            queryopt=true
             ;;
         --host)
             shift
@@ -1322,10 +1260,10 @@ while [ -n "$1" ]; do
             ;;
         --lockwait)
             shift
-            if [ "$1" = -1 -o "$1" -ge 0 ] 2>/dev/null; then
+            if [ "$1" -ge 0 ] 2>/dev/null; then
                 lockwait="$1"
             else
-                die "--lockwait requires an argument -1 <= n <= 50"
+                die "--lockwait requires an argument zero or greater."
             fi
             ;;
         --quick|-Q)
@@ -1335,8 +1273,12 @@ while [ -n "$1" ]; do
         --quiet|-q)
             quietopt=true
             ;;
+        --confhost|-c)
+            sshconfig=true
+            confhost="$2"
+            ;;
         --nocolor)
-            unset BLUE CYAN GREEN OFF RED
+            color=false
             ;;
         --timeout)
             shift
@@ -1345,6 +1287,9 @@ while [ -n "$1" ]; do
             else
                 die "--timeout requires a numeric argument greater than zero"
             fi
+            ;;
+        --systemd)
+            systemdopt=true
             ;;
         --)
             shift
@@ -1396,15 +1341,19 @@ if [ -n "$envf" ]; then
     . "$envf"
 fi
 
-# Don't use color if there's no terminal on stdout
+# Don't use color if there's no terminal on stderr
 if [ -n "$OFF" ]; then
-    tty <&1 >/dev/null 2>&1 || unset BLUE CYAN GREEN OFF RED
+    tty <&2 >/dev/null 2>&1 || color=false
 fi
 
-# versinfo uses qprint, which honors --quiet
-versinfo
-[ "$myaction" = version ] && exit 0
-[ "$myaction" = help ] && { helpinfo; exit 0; }
+#disable color if necessary, right before our initial newline
+
+$color || unset BLUE CYAN CYANN GREEN PURP OFF RED
+
+qprint #initial newline
+mesg "${PURP}keychain ${OFF}${CYANN}${version}${OFF} ~ ${GREEN}http://www.funtoo.org${OFF}"
+[ "$myaction" = version ] && { versinfo; exit 0; }
+[ "$myaction" = help ] && { versinfo; helpinfo; exit 0; }
 
 # Set up traps
 # Don't use signal names because they don't work on Cygwin.
@@ -1461,7 +1410,7 @@ if $quickopt; then
             sshavail=`ssh_l`    # try to use existing agent
                                 # 0 = found keys, 1 = no keys, 2 = no agent
             if [ $? = 0 -o \( $? = 1 -a -z "$mykeys" \) ]; then
-                mesg "Found existing ssh-agent ($ssh_agent_pid)"
+                mesg "Found existing ssh-agent: ${CYANN}$ssh_agent_pid${OFF}"
                 needstart=false
             fi
         elif [ $a = gpg ]; then
@@ -1469,7 +1418,7 @@ if $quickopt; then
             if [ -n "$gpg_agent_pid" ]; then
                 case " `findpids gpg` " in
                     *" $gpg_agent_pid "*) 
-                        mesg "Found existing gpg-agent ($gpg_agent_pid)"
+                        mesg "Found existing gpg-agent: ${CYANN}$gpg_agent_pid${OFF}"
                         needstart=false ;;
                 esac
             fi
@@ -1493,12 +1442,17 @@ takelock || die
 loadagents $agentsopt
 unset nagentsopt
 for a in $agentsopt; do
-    if startagent $a; then
+    if $queryopt; then
+        catpidf_shell sh $a | cut -d\; -f1
+    elif startagent $a; then
         nagentsopt="${nagentsopt+$nagentsopt }$a"
         $evalopt && catpidf $a
     fi
 done
 agentsopt="$nagentsopt"
+
+# If we are just querying the services, exit.
+$queryopt && exit 0
 
 # If there are no agents remaining, then duck out now...
 [ -n "$agentsopt" ] || { qprint; exit 0; }
@@ -1542,12 +1496,25 @@ if $clearopt; then
     trap 'droplock' 2               # done clearing, safe to ctrl-c
 fi
 
+if $systemdopt; then
+    for a in $agentsopt; do
+        systemctl --user set-environment $( catpidf_shell sh $a | cut -d\; -f1 )
+    done
+fi
+
 # --noask: "don't ask for keys", so we're all done
 $noaskopt && { qprint; exit 0; }
 
+# If the --confhost option used, determine the path to the private key as 
+# written in the ~/.ssh/config and add it to ssh-add.
+if $sshconfig; then
+    pkeypath=$(confpath "$confhost")
+    eval pkeypath=$pkeypath
+fi
+
 # Parse $mykeys into ssh vs. gpg keys; it may be necessary in the future to
 # differentiate on the cmdline
-parse_mykeys || die
+parse_mykeys "$pkeypath" || die
 
 # Load ssh keys
 if wantagent ssh; then
@@ -1559,28 +1526,36 @@ if wantagent ssh; then
     # Attempt to add the keys
     while [ -n "$sshkeys" ]; do
 
-        mesg "Adding ${BLUE}"`echo "$sshkeys" | wc -l`"${OFF} ssh key(s)..."
+        mesg "Adding ${CYANN}"`echo "$sshkeys" | wc -l`"${OFF} ssh key(s): `echo $sshkeys`"
 
         # Parse $sshkeys into positional params to preserve spaces in filenames.
         # This *must* happen after any calls to subroutines because pure Bourne
         # shell doesn't restore "$@" following a call.  Eeeeek!
-        set -f;            # disable globbing
-        old_IFS="$IFS"     # save current IFS
+        set -f          # disable globbing
+        old_IFS="$IFS"  # save current IFS
         IFS="
-"                          # set IFS to newline
+"                       # set IFS to newline
         set -- $sshkeys
-        IFS="$old_IFS"     # restore IFS
-        set +f             # re-enable globbing
+        IFS="$old_IFS"  # restore IFS
+        set +f          # re-enable globbing
 
-        if $noguiopt || [ -z "$DISPLAY" ]; then
+        if $noguiopt || [ -z "$SSH_ASKPASS" -o -z "$DISPLAY" ]; then
             unset DISPLAY       # DISPLAY="" can cause problems
             unset SSH_ASKPASS   # make sure ssh-add doesn't try SSH_ASKPASS
-            sshout=`ssh-add ${ssh_timeout} ${ssh_confirm} "$@"`
+            sshout=`ssh-add ${ssh_timeout} ${ssh_confirm} "$@" 2>&1`
         else
-            sshout=`ssh-add ${ssh_timeout} ${ssh_confirm} "$@" </dev/null`
+            sshout=`ssh-add ${ssh_timeout} ${ssh_confirm} "$@" 2>&1 </dev/null`
         fi
-        [ $? = 0 ] && break
-
+        if [ $? = 0 ] 
+	then
+		blurb=""
+		[ -n "$timeout" ] && blurb="life=${timeout}m"
+		[ -n "$timeout" ] && $confirmopt && blurb="${blurb},"
+		$confirmopt && blurb="${blurb}confirm"
+		[ -n "$blurb" ] && blurb=" (${blurb})"
+		mesg "ssh-add: Identities added: `echo $sshkeys`${blurb}"
+		break
+	fi
         if [ $sshattempts = 1 ]; then
             die "Problem adding; giving up"
         else
@@ -1612,18 +1587,18 @@ if wantagent gpg; then
     while [ -n "$gpgkeys" ]; do
         tryagain=false
 
-        mesg "Adding ${BLUE}"`echo "$gpgkeys" | wc -l`"${OFF} gpg key(s)..."
+        mesg "Adding ${BLUE}"`echo "$gpgkeys" | wc -l`"${OFF} gpg key(s): `echo $gpgkeys`"
 
         # Parse $gpgkeys into positional params to preserve spaces in filenames.
         # This *must* happen after any calls to subroutines because pure Bourne
         # shell doesn't restore "$@" following a call.  Eeeeek!
-        set -f;            # disable globbing
-        old_IFS="$IFS"     # save current IFS
+        set -f          # disable globbing
+        old_IFS="$IFS"  # save current IFS
         IFS="
-"                          # set IFS to newline
+"                       # set IFS to newline
         set -- $gpgkeys
-        IFS="$old_IFS"     # restore IFS
-        set +f             # re-enable globbing
+        IFS="$old_IFS"  # restore IFS
+        set +f          # re-enable globbing
 
         for k in "$@"; do
             echo | env LC_ALL="$pinentry_lc_all" \
