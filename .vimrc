@@ -27,10 +27,10 @@ nnoremap <F1> :%s/\s\+$//<CR>
 set viminfo='20,<50,s10,h,%
 colorscheme darkblue
 filetype plugin on
-" load custom file type plugins
-autocmd BufRead,BufNewFile *.py set filetype=python
-autocmd BufRead,BufNewFile *.php set filetype=php
-autocmd BufRead,BufNewFile *.phps set filetype=php
+" load custom file type plugins, undo foldmethod=indent
+autocmd BufRead,BufNewFile *.py set filetype=python foldmethod=syntax
+autocmd BufRead,BufNewFile *.php set filetype=php foldmethod=syntax
+autocmd BufRead,BufNewFile *.phps set filetype=php foldmethod=syntax
 " on gvim systems, no menubar, no toolbar, no scrollbars... remove one at a
 " time else won't be recognized if current guioptions are not in same order
 set guioptions-=m
