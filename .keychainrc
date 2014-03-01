@@ -1,4 +1,4 @@
-keychain --nogui id_rsa rsync-backups.id_rsa
+keychain --nogui --quiet id_rsa rsync-backups.id_rsa
 # if HOSTNAME not set, keychain creates the file with the following uname command
 [ -z "$HOSTNAME" ] && HOSTNAME=`uname -n 2>/dev/null || echo unknown`
 # do not allow sourcing this file to exit 1 due to one of these files not existing:
