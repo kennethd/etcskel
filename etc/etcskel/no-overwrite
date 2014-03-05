@@ -1,6 +1,7 @@
 # list of files installed by etcskel which should never be overwritten by updates.
 # to force an update, move your current version out of the way & run etcskel-update.
 # all entries must be relative to your $HOME directory.
+.bash_aliases
 .bash_functions
 .bash_logout
 .bash_profile
