@@ -27,6 +27,22 @@ indeed created from ''/etc/skel'', including a reasonable ''~/.bashrc'',
 These files are expected to be updated by most active users and the upgrade
 script will never overwrite them once installed.
 
+===== ~/.bash_custom =====
+
+If you want to customize your bash environment, this is the recommended place.
+The file does not exist by default, and will not be tracked or overwritten by
+the repo.
+
+<file bash .bash_custom>
+# prepend mediagoblin's bin to PATH if not already there
+if [[ ":$PATH:" != *":$HOME/mediagoblin/bin:"* ]]
+then
+    # ~/.profile is pretty aggressive about keeping ~/bin @ front of PATH
+    # so we will insert mg's bin as second
+    export PATH="$HOME/bin:$HOME/mediagoblin/bin:${PATH##$HOME/bin:}"
+fi
+</file>
+
 ====== BACKUPS ======
 
 The main feature provided is automatic backups.  Installing my homegrown
