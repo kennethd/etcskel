@@ -249,6 +249,15 @@ me to pull changes in from the upstream 'etcskel' project.  Set it up like this:
     kenneth@x1:~/git/etcskel-kenneth$ git merge upstream/master
     kenneth@x1:~/git/etcskel-kenneth$ git push origin master
 
+We primarily want this branch to track upstream changes, and changes to the
+files upstream knows about will be made in that repo.  In the case of wanting
+to contribute changes back upstream, it is probably best to cherry-pick
+commits from that repo rather than trying to selectively push:
+
+    kenneth@dhalgren:~/git/etcskel$ git remote add kenneth gitosis@git.ylayali.net:etcskel-kenneth.git
+    kenneth@dhalgren:~/git/etcskel$ git fetch kenneth
+    kenneth@dhalgren:~/git/etcskel$ git cherry-pick 22709bee111ee35e417e145ed0eadf014639de02
+
 ====== EDITING ======
 
 This section is for developers working on the etcskel files themselves
