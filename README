@@ -274,6 +274,13 @@ commits from that repo rather than trying to selectively push:
     kenneth@dhalgren:~/git/etcskel$ git fetch kenneth
     kenneth@dhalgren:~/git/etcskel$ git cherry-pick 22709bee111ee35e417e145ed0eadf014639de02
 
+You can now begin tracking your fork by editing ~/etc/etcskel/config:
+
+    13c13
+    < ETCSKEL_REMOTE_URL="git://git.ylayali.net/etcskel.git"
+    ---
+    > ETCSKEL_REMOTE_URL="git://git.ylayali.net/etcskel-kenneth.git"
+
 ====== EDITING ======
 
 This section is for developers working on the etcskel files themselves
