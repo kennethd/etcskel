@@ -1,9 +1,9 @@
 
 This file was installed with your user account to describe a few special
-features of accounts on this system.  
+features of accounts on this system.
 
 The package which installed these files may be browsed online @
-http://git.ylayali.net/?p=etcskel.git or checked out locally via 
+http://git.ylayali.net/?p=etcskel.git or checked out locally via
 
   $ git clone git://git.ylayali.net/etcskel.git
 
@@ -71,7 +71,7 @@ from any of your computers or dropbox-enabled devices.  It is free for up to 2GB
 
 If you don't have one already, create a dropbox account.  You will have to
 authorize etcskel-backups to upload files on your behalf.  You only have to
-perform this setup once per account.  
+perform this setup once per account.
 
 If you are setting up a new dropbox account, feel free to accept an invitation
 from me @ http://db.tt/NvvJZEIC (we will both get some extra storage)
@@ -87,7 +87,7 @@ and type ''login'':
   Dropbox> login
   url: https://www.dropbox.com/1/oauth/authorize?oauth_token=YOURUNIQUETOKEN
   Please authorize in the browser. After you're done, press enter.
-  
+
   Dropbox> exit
 
 Copy the URL into a browser and push the "Authorize" button.  Come back to the
@@ -114,9 +114,9 @@ elsewhere on the internet.
 Enabling ''rsync-backups'' should require no more than editing
 ''~/etc/backup/rsync'', a number of changes are required:
 
-  * RSYNC_BACKUPS_HOST must be set 
-  * RSYNC_BACKUPS_USER must be set 
-  * RSYNC_BACKUPS_PATH must be set 
+  * RSYNC_BACKUPS_HOST must be set
+  * RSYNC_BACKUPS_USER must be set
+  * RSYNC_BACKUPS_PATH must be set
 
 Once these three variables are configured, run the script that tries to set up
 data-sharing permissions for you:
@@ -154,7 +154,7 @@ Your crontab (try `crontab -l`) should look something like this:
 Your ''~/cron.daily'' directory probably contains scripts for **backup**,
 **logrotate**, and **webalizer**, but you can drop your own scripts in there too
 
-You can (and should) edit your crontab by issuing the command ''crontab -e'', 
+You can (and should) edit your crontab by issuing the command ''crontab -e'',
 look for a line like:
 
 <code bash>
@@ -177,8 +177,8 @@ etcskel backup scripts are generally poor models to follow because they jump
 through hoops to use ''at'' to stagger invocations of io-intensive scripts (so
 everyone's backups don't kick off at the same time, overwhelming the disk io).
 If your script is disk-intensive, please do use use similar techniques to avoid
-your script running at the top of the hour, but in general you will want to 
-keep things as simple as can be, for example: 
+your script running at the top of the hour, but in general you will want to
+keep things as simple as can be, for example:
 
 The ''ylayali'' user makes use of a wiki package called ''dokuwiki'', and a
 dokuwiki plugin to bring in the latest **xkcd** comic, but the plugin doesn't
@@ -229,6 +229,25 @@ locally managed files.
 In any case, a backup is created every time you run the script, so there should
 always be a path for recovery (even if the upgrade script itself gets broken you
 always have your daily backups to fall back to)
+
+====== FORKING ======
+
+Creating a fork of etcskel is easy with git.  I maintain a fork called
+'etcskel-kenneth' which contains more of my personal configs, but still allows
+me to pull changes in from the upstream 'etcskel' project.  Set it up like this:
+
+    kenneth@x1:~/git$ mkdir etcskel-kenneth
+    kenneth@x1:~/git$ cd etcskel-kenneth/
+    kenneth@x1:~/git/etcskel-kenneth$ git init
+    kenneth@x1:~/git/etcskel-kenneth$ git remote add origin gitosis@git.ylayali.net:etcskel-kenneth.git
+    kenneth@x1:~/git/etcskel-kenneth$ git remote add upstream gitosis@git.ylayali.net:etcskel.git
+    kenneth@x1:~/git/etcskel-kenneth$ touch .etcskel-kenneth
+    kenneth@x1:~/git/etcskel-kenneth$ git add .etcskel-kenneth
+    kenneth@x1:~/git/etcskel-kenneth$ git commit -m 'initial commit'
+    kenneth@x1:~/git/etcskel-kenneth$ git push origin master:refs/heads/master
+    kenneth@x1:~/git/etcskel-kenneth$ git fetch upstream
+    kenneth@x1:~/git/etcskel-kenneth$ git merge upstream/master
+    kenneth@x1:~/git/etcskel-kenneth$ git push origin master
 
 ====== EDITING ======
 
