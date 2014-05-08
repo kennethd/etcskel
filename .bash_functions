@@ -186,7 +186,8 @@ search_and_replace()
     local grepdir="${3:-$PWD}";
     ### grep -rl "$search" "$grepdir" | xargs -r sed -i -e "s#$search#$replace#g"
     # do not modify private version control files
-    find "$grepdir" -type f -wholename '*/.svn/*' -wholename '*/.git/*' -wholename '*/CVS/*' -prune -exec sed -i -e "s#${search}#${replace}g" '{}' \;
+    ## find "$grepdir" -type f -wholename '*/.svn/*' -wholename '*/.git/*' -wholename '*/CVS/*' -prune -exec sed -i -e "s#${search}#${replace}g" '{}' \;
+    find "$grepdir" -wholename './.git*' -o -wholename '*/.svn*' -o -wholename '*/CVS*'  -prune  -o -type f -a -exec sed -i -e "s#${search}#${replace}#g" '{}' \;
 }
 
 # credit for the following sed script goes to:
@@ -319,6 +320,34 @@ dircmp()
         return 1
     fi
     return 0
+}
+
+gg()
+{
+    local SEARCH="$1"
+    local ARGS="rIn"
+    local CASE_SENSITIVE="False"
+    for arg ; do
+        if [ x"$arg" = xexact ]; then
+            # case-ensitive + word boundaries
+            CASE_SENSITIVE="True"
+            SEARCH="\b${SEARCH}\b"
+            ARGS="${ARGS}E"
+        else
+            if [ x"$arg" = xcase ]; then
+                CASE_SENSITIVE="True"
+            fi
+            # word boundaries?
+            if [ x"$arg" = xword ]; then
+                SEARCH="\b${SEARCH}\b"
+                ARGS="${ARGS}E"
+            fi
+        fi
+    done
+    if [ "$CASE_SENSITIVE" = "False" ]; then
+        ARGS="${ARGS}i"
+    fi
+    grep --exclude-dir=.git --exclude-dir=lib --exclude=tags -"${ARGS}"  "${SEARCH}"  |  less -XS
 }
 
 
