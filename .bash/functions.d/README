@@ -1,0 +1,7 @@
+# files in this directory will be sourced by your init scripts, but provides
+# more control what you want added to source control
+
+
+
+# following line should be last
+# vi: set syntax=bash

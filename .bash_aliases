@@ -16,4 +16,21 @@ alias screen='screen -h 1600'
 
 alias reverse-words="awk '{ for (i=NF; i>0; i--) printf(\"%s \", \$i) } { printf(\"%s\", \"\n\") }'"
 
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#                   L O C A L   C U S T O M I Z A T I O N S                 #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# put whatever you want into the following directory to add locally-controlled
+# files not necessarily kept in source control (all files should be bash syntax)
+if [ -d "$HOME"/.bash/aliases.d ]
+then
+    for f in "$HOME"/.bash/aliases.d/*
+    do
+        . "$f"
+    done
+fi
+
 # vi: set syntax=bash

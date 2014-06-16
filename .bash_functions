@@ -351,3 +351,19 @@ gg()
 }
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#                   L O C A L   C U S T O M I Z A T I O N S                 #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# put whatever you want into the following directory to add locally-controlled
+# files not necessarily kept in source control (all files should be bash syntax)
+if [ -d "$HOME"/.bash/functions.d ]
+then
+    for f in "$HOME"/.bash/functions.d/*
+    do
+        . "$f"
+    done
+fi
+
+# vi: set syntax=bash
