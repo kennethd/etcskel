@@ -20,6 +20,7 @@ set showmatch           " hilight matching brace/bracket while editing
 set showcmd             " show (partial) command in the last line of the screen
 set bg=dark             " use dark colors
 set tw=78               " textwidth (column to wrap text)
+set colorcolumn=80      " highlight 80th column
 
 " reassign <F1> to remove all trailing whitespace
 nnoremap <F1> :%s/\s\+$//<CR>
