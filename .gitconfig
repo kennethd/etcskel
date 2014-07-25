@@ -19,14 +19,15 @@
   changed = green
   untracked = cyan
 
+[diff]
+	tool = vimdiff
+
 [rerere]
 	enabled = true
+
 [alias]
 	lgg = log --graph --pretty=format:'%h -%d %s (%ci) <%an>' --abbrev-commit
 	lgg-color = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit
         squash = "!f(){ git rebase -i HEAD~${1}; }; f"
         undo = "!f(){ git reset --hard HEAD~${1}; }; f"
         file-history = "!f(){ git log --oneline \"$1\" | tac | cut -d' ' -f1 | xargs -I'{}' git show '{}' \"$1\" ; }; f"
-
-[diff]
-	tool = vimdiff
