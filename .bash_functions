@@ -347,7 +347,7 @@ gg()
     if [ "$CASE_SENSITIVE" = "False" ]; then
         ARGS="${ARGS}i"
     fi
-    grep --exclude-dir=.git --exclude-dir=lib --exclude=tags -"${ARGS}"  "${SEARCH}"  |  less -XS
+    grep --exclude-dir=.git --exclude-dir=build --exclude-dir=dist --exclude-dir=include --exclude-dir=lib --exclude-dir=local --exclude-dir=man --exclude=tags -"${ARGS}"  "${SEARCH}"  |  less -XS
 }
 
 
