@@ -1,3 +1,4 @@
 *~
 *.sw[o-z]
 bin/etcskel-dropbox-backups-syncc
+/bin/csvgrepc
