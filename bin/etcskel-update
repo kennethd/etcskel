@@ -31,15 +31,28 @@ die() { echo "$0: $*" >&2 ; exit 1 ; }
 warn() { echo "$0: WARNING: $*" >&2 ; }
 info() { echo "$0: $*" >&2 ; }
 usage() {
-    echo -e "$0 [-h] [-f] [target-dir]\n"
-    echo "  target-dir defaults to HOME (allows root to update /etc/skel)"
-    echo "  -f force overwrites everything"
+    echo "$0 [-h] [-f] [-v] [target-dir]"
+    echo ""
+    echo "  target-dir  defaults to HOME (allows root to update /etc/skel)"
+    echo ""
+    echo "  -f          force overwrites everything"
+    echo ""
+    echo "  -v          verbose will print a status line for each file to STDERR,"
+    echo "              and for any files *not* being updated, but which have"
+    echo "              changed locally from upstream, a context diff will be"
+    echo "              written to STDOUT."
+    echo ""
+    echo "                    $ etcskel-update >/tmp/\$LOGNAME-etcskel-update.diff"
+    echo ""
+    echo "              will give you the statuses in your terminal, and a file"
+    echo "              /tmp/\$LOGNAME-etcskel-update.diff to review the changes"
+    echo ""
+    echo "              same as config option ETCSKEL_UPDATE_VERBOSE"
 }
 
 ##set -x
 
-FORCE_OVERWRITE_ALL=
-while getopts ":fh" opt
+while getopts ":fhv" opt
 do
     case $opt in
         f)
@@ -48,6 +61,9 @@ do
         h)
             usage
             exit 0
+            ;;
+        v)
+            FORCE_UPDATE_VERBOSE="yes"
             ;;
         \?)
             die "unknown option: -$OPTARG"
@@ -66,6 +82,10 @@ fi
 ETCSKEL_CONFIG="${ETCSKEL_CONFIG:-$HOME/etc/etcskel/config}"
 # all config options have defaults, lack of config is not fatal
 [ -r "$ETCSKEL_CONFIG" ] && . "$ETCSKEL_CONFIG" || warn "cannot read config $ETCSKEL_CONFIG"
+if [ x"$FORCE_UPDATE_VERBOSE" != x"" ]
+then
+    ETCSKEL_UPDATE_VERBOSE=yes
+fi
 
 ETCSKEL_REMOTE_URL="${ETCSKEL_REMOTE_URL:-git://git.ylayali.net/etcskel.git}"
 
@@ -120,7 +140,7 @@ do
     )
     then
         # if verbose show a diff of the two versions, if different
-        if [ "" != "$ETCSKEL_UPDATE_VERBOSE" ]
+        if [ x"" != x"$ETCSKEL_UPDATE_VERBOSE" ]
         then
             if diff -q "./$FILE" "$TARGET_DIR/$FILE" 2>&1 >/dev/null
             then
@@ -134,7 +154,7 @@ do
             fi
         fi
     else
-        [ "" != "$ETCSKEL_UPDATE_VERBOSE" ] && info "writing $FILE"
+        [ x"" != x"$ETCSKEL_UPDATE_VERBOSE" ] && info "writing $FILE"
         # if $FILE contains any path info, make sure directories exist
         RELPATH="${FILE%/*}"
         if [ "$FILE" != "$RELPATH" ]
