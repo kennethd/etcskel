@@ -1,0 +1,34 @@
+#!/usr/bin/env python2.7
+
+import argparse
+import sys
+import termios
+import tty
+
+parser = argparse.ArgumentParser(
+    description="Ask user a question, accept yes or no response & exit with 0 or 1",
+    epilog="default is No (if user just hits enter)"
+)
+parser.add_argument("question")
+args = parser.parse_args()
+
+def getch():
+    """instead of raw_input, only read single keypress"""
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
+
+print >> sys.stderr, "{} (y,N)".format(args.question), 
+answer = getch()
+try:
+    if answer[0].upper() == "Y":
+        sys.exit(0)
+except IndexError:
+    pass
+print >> sys.stderr, "User cancelled"
+sys.exit(1)
