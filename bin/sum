@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+# :! echo 10 20 30 40 50 | ./bin/sum
+# 150
+# 
+# :! ./bin/sum 10 20 30 40 50
+# 150
+
+import sys
+
+def usage():
+    return '''usage: %s n [n [n [...]]]  *or*  echo n [n [n [...]]] | %s
+
+Prints sum of all inputs to STDOUT
+''' % (sys.argv[0], sys.argv[0])
+
+if '-h' in sys.argv or '--help' in sys.argv:
+    print usage()
+    sys.exit(0)
+
+inputs = sys.argv[1:]
+if not sys.stdin.isatty():
+    for line in sys.stdin:
+        for i in line.split():
+            try:
+                inputs.append(int(i))
+            except ValueError:
+                # ignore non-numbers
+                pass
+args = [ int(i) for i in inputs ]
+print sum(args)
+sys.exit(0)
