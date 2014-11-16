@@ -111,6 +111,7 @@ du_report() {
 }
 
 for DIR in "${DIRS[@]}"; do
+    df -h "$DIR"
     du_report "$DIR"
 done
 exit 0
