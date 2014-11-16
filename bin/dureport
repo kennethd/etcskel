@@ -1,0 +1,116 @@
+#!/bin/bash
+die() { echo "$0: $*" >&2 ; exit 1 ; }
+warn() { echo "$0: WARNING: $*" >&2 ; }
+info() { echo "$0: $*" >&2 ; }
+usage() {
+    cat <<EOQ
+  $0 [OPTIONS] DIR [DIR [...]]
+
+OPTIONS:
+
+  -a, --all             output both files & directories (same as du -a)
+  -n, --lines           lines to output for each du invocation (head -n)
+  -t, --threshold       stop recursion @ threshold size (default 100MB)
+  -u, --output-units    bytes is default. supported units B, K, KB, M, MB, G, GB
+  -x, --one-file-system do not follow links to other file systems (like du -x)
+
+EOQ
+}
+
+DIRS=()
+DU_OPTS=
+HEAD_OPTS=
+THRESHOLD=104857600 # default 100 mb, in bytes
+OUTPUT_DIVISOR=$((1024 * 1024))
+OUTPUT_UNITS=MB
+
+while test -n "$1"; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -a|--all)
+            # include both files & directories in output
+            DU_OPTS="${DU_OPTS} -a"
+            shift
+            ;;
+        -n|--lines)
+            # print first n lines (largest dirs) per directory
+            shift
+            HEAD_OPTS="$HEAD_OPTS -n $1"
+            shift
+            ;;
+        -t|--threshold)
+            # do not recurse into dirs less than threshold
+            shift
+            T=$( echo "$1" | tr '[:lower:]' '[:upper:]' )
+            SIZE=$( echo "$T" | sed -E 's/^([0-9]+)(B|K|KB|M|MB|G|GB)$/\1/' )
+            UNIT=$( echo "$T" | sed -E 's/^([0-9]+)(B|K|KB|M|MB|G|GB)$/\2/' )
+            if [ x"$UNIT" = xB ]; then
+                THRESHOLD=$((SIZE))
+            elif [ x"$UNIT" = xK ] || [ x"$UNIT" = xKB ]; then
+                THRESHOLD=$((SIZE * 1024))
+            elif [ x"$UNIT" = xM ] || [ x"$UNIT" = xMB ]; then
+                THRESHOLD=$((SIZE * 1024 * 1024))
+            elif [ x"$UNIT" = xG ] || [ x"$UNIT" = xGB ]; then
+                THRESHOLD=$((SIZE * 1024 * 1024 * 1000))
+            else
+                die "unrecognized threshold unit: $UNIT"
+            fi
+            shift
+            ;;
+        -u|--output-units)
+            # default is MB
+            shift
+            OUTPUT_UNITS=$( echo "$1" | tr '[:lower:]' '[:upper:]' )
+            if [ x"$OUTPUT_UNITS" = xB ]; then
+                OUTPUT_DIVISOR=$((1))
+            elif [ x"$OUTPUT_UNITS" = xK ] || [ x"$OUTPUT_UNITS" = xKB ]; then
+                OUTPUT_DIVISOR=$((1024))
+            elif [ x"$OUTPUT_UNITS" = xM ] || [ x"$OUTPUT_UNITS" = xMB ]; then
+                OUTPUT_DIVISOR=$((1024 * 1024))
+            elif [ x"$OUTPUT_UNITS" = xG ] || [ x"$OUTPUT_UNITS" = xGB ]; then
+                OUTPUT_DIVISOR=$((1024 * 1024 * 1000))
+            else
+                die "unrecognized output unit: $UNIT"
+            fi
+            shift
+            ;;
+        -x|--one-file-system)
+            # ignore directories on other file systems
+            DU_OPTS="${DU_OPTS} -x"
+            shift
+            ;;
+        *)
+            [ -d "$1" ] || die "Not a directory: $1"
+            DIRS=( $DIRS "$1" )
+            shift
+            ;;
+    esac
+done 
+
+SIZE_FILTER=$((THRESHOLD / OUTPUT_DIVISOR))
+
+du_report() {
+    local DIR="$1"
+    local PREVDIR="$2"
+    du $DU_OPTS --bytes --max-depth=1 "$DIR" 2>/dev/null | sort -rn | head $HEAD_OPTS | while read SIZE SUBDIR
+    do
+        local OUTPUT_SIZE=$((SIZE / OUTPUT_DIVISOR))
+        local OUTPUT_PFX="${OUTPUT_SIZE}${OUTPUT_UNITS}"
+        if [ "$DIR" != "$SUBDIR" ]; then
+            if [ "$OUTPUT_SIZE" -ge "$SIZE_FILTER" ]; then
+                printf "%12s %-80s\n" $OUTPUT_PFX "$SUBDIR"
+                if [ "$PREVDIR" != "$SUBDIR" ]; then
+                    du_report "$SUBDIR" "$DIR"
+                fi
+            fi
+        fi
+    done
+}
+
+for DIR in "${DIRS[@]}"; do
+    du_report "$DIR"
+done
+exit 0
