@@ -11,6 +11,7 @@ alias lesspnum="less -P '%f        ?db%db / %D.'"
 alias ls='ls --color=auto'
 alias ll='ls -l'
 alias moby='dict -d moby-thesaurus'
+alias pwsugg='apg -n24 -m10 -x18 -MSNCL'
 alias rdiff='diff -bBqr --exclude=CVS'
 alias screen='screen -h 1600'
 
