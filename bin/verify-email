@@ -5,6 +5,7 @@ import smtplib
 import sys
 
 try:
+    import dns.exception
     import dns.resolver
 except ImportError:
     print >> sys.stderr, "Package dnspython is required"
@@ -41,9 +42,24 @@ else:
 
 (local_part, domain) = email.split('@', 1)
 domain = domain.strip()
-answers = dns.resolver.query(domain, 'MX')
+
+
+# decrease timeout
+resolver = dns.resolver.Resolver()
+resolver.timeout = 1
+resolver.lifetime = 1
+
+
+try:
+    answers = resolver.query(domain, 'MX')
+except dns.resolver.NXDOMAIN:
+    err("Not a valid domain {}".format(domain))
+except dns.exception.Timeout:
+    err("Timeout waiting for domain record {}".format(domain))
+except dns.exception.DNSException:
+    err("Unknown DNS exception for domain {}".format(domain))
 if not answers:
-    err("no MX records found")
+    err("No MX records found for {}".format(domain))
 
 
 mxhost = ''
