@@ -40,7 +40,10 @@ else:
     except IndexError:
         err("needs argument")
 
-(local_part, domain) = email.split('@', 1)
+try:
+    (local_part, domain) = email.split('@', 1)
+except ValueError:
+    err("invalid email {}".format(email))
 domain = domain.strip()
 
 
