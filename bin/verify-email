@@ -1,0 +1,67 @@
+#!/usr/bin/env python2.7
+
+import argparse
+import smtplib
+import sys
+
+try:
+    import dns.resolver
+except ImportError:
+    print >> sys.stderr, "Package dnspython is required"
+    sys.exit(1)
+
+
+def err(msg):
+    '''print error msg to STDERR & exit with status code 1'''
+    msg = '{}: {}'.format(sys.argv[0], msg)
+    print >> sys.stderr, msg
+    sys.exit(1)
+
+
+def usage():
+    return '''usage: %s email  *or*  echo email | %s
+
+exits with status code 0 on success, 1 on failure (possibly with message to STDERR)
+''' % (sys.argv[0], sys.argv[0])
+
+
+if '-h' in sys.argv or '--help' in sys.argv:
+    print >> sys.stdout, usage()
+    sys.exit(0)
+
+
+# accept input via STDIN or positional arg
+if not sys.stdin.isatty():
+    email = sys.stdin.readline()
+else:
+    try:
+        email = sys.argv[1]
+    except IndexError:
+        err("needs argument")
+
+(local_part, domain) = email.split('@', 1)
+domain = domain.strip()
+answers = dns.resolver.query(domain, 'MX')
+if not answers:
+    err("no MX records found")
+
+
+mxhost = ''
+for mxrecord in sorted(answers.rrset.items):
+    (pri, fqdn) = mxrecord.to_text().split(" ")
+    # remove trailing dot from domain record
+    mxhost = fqdn[:-1]
+    break
+
+
+smtp = smtplib.SMTP(mxhost)
+(status_code, msg) = smtp.verify(email)
+
+
+# see reply codes @ http://www.greenend.org.uk/rjk/tech/smtpreplies.html
+# anything in 2xx 3xx range should be tried, maybe good, maybe not
+# anything in 4xx 5xx range will fail, don't even try
+if str(status_code)[0] in ('4', '5'):
+    err('verify {} @ {} response {}'.format(email, mxhost, msg))
+
+sys.exit(0)
