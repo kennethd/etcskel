@@ -13,6 +13,7 @@ alias ll='ls -l'
 alias moby='dict -d moby-thesaurus'
 alias rdiff='diff -bBqr --exclude=CVS'
 alias screen='screen -h 1600'
+alias speedtest='wget -O /dev/null http://speedtest.wdc01.softlayer.com/downloads/test10.zip'
 
 alias reverse-words="awk '{ for (i=NF; i>0; i--) printf(\"%s \", \$i) } { printf(\"%s\", \"\n\") }'"
 
