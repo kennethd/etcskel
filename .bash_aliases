@@ -14,7 +14,7 @@ alias moby='dict -d moby-thesaurus'
 alias pwsugg='apg -n24 -m10 -x18 -MSNCL'
 alias rdiff='diff -bBqr --exclude=CVS'
 alias screen='screen -h 1600'
-alias speedtest='wget -O /dev/null http://speedtest.wdc01.softlayer.com/downloads/test10.zip'
+alias speedtest='wget -O - https://raw.github.com/sivel/speedtest-cli/master/speedtest_cli.py | python'
 
 alias reverse-words="awk '{ for (i=NF; i>0; i--) printf(\"%s \", \$i) } { printf(\"%s\", \"\n\") }'"
 
