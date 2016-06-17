@@ -96,6 +96,8 @@ git archive --remote="$ETCSKEL_REMOTE_URL" HEAD --format=tar | tar -C "$EXPORT_D
 SC=$? && [ $SC -eq 0 ] || die "git archive failed with exit status $SC"
 
 cd "$EXPORT_DIR"
+# do not copy this project's ~/.gitignore to $HOME
+rm .gitignore
 IFS='
 '
 FILES=$( find . -type f -print )

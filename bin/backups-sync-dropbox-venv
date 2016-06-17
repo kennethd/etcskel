@@ -1,0 +1,16 @@
+#!/bin/bash
+shout() { echo "$0: $*" >&2; }
+barf() { shout "$*"; exit 111; }
+safe() { "$@" || barf "cannot $*"; }
+# debian stable's system setuptools is no longer compatible with dropbox, so
+# build a virtualenv to run the python script in
+VENVDIR=$( mktemp -d )
+safe cd "$VENVDIR"
+safe virtualenv --python=python2.7 --no-site-packages --setuptools .
+safe . ./bin/activate
+safe easy_install -U setuptools pip virtualenv
+safe pip install dropbox
+safe "$HOME"/bin/backups-sync-dropbox
+safe cd "$TMPDIR"
+safe rm -rf "$VENVDIR"
+exit 0

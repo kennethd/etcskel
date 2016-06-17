@@ -1,10 +1,13 @@
 #!/bin/bash
-# vary minute (1-9) to avoid all users' syncs from kicking off @ the same time
+# To avoid all users' syncs from kicking off @ the same time, vary minute
+# (1-9), minten (1-5) & hour (1-6) for a time between 1:11 & 6:59.
 RANGE=9; MIN=$RANDOM; let "MIN %= $RANGE"; let "MIN += 1";
+RANGE=5; MINTEN=$RANDOM; let "MINTEN %= $RANGE"; let "MINTEN += 1";
+RANGE=6; HOUR=$RANDOM; let "HOUR %= $RANGE"; let "HOUR += 1";
 # if you haven't authorized etcskel-backups to write to your dropbox, this
 # script will exit successfully.
 [ -r "$HOME/.etcskel-backups.dropbox.token" ] || exit 0
-at 03:1$MIN >/dev/null 2>&1 <<-EOQ
-"$HOME/bin/backups-sync-dropbox" 2>/dev/null
+at 0${HOUR}:${MINTEN}${MIN} >/dev/null 2>&1 <<-EOQ
+"$HOME/bin/backups-sync-dropbox-venv" 2>/dev/null
 EOQ
 

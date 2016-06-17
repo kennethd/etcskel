@@ -10,3 +10,8 @@ etc/defaults/crontab
 etc/defaults
 # moved to etc/logrotate.d
 etc/logrotate
+.bash/aliases.d/README
+.bash/aliases.d
+.bash/functions.d/README
+.bash/functions.d
+.bash

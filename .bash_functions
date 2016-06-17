@@ -91,7 +91,7 @@ array_intersect()
 #   five six
 #
 # We are passing the NAMES of the arrays which exist in calling scope (& are
-# thus inherited by our function)
+# thus accessible by our function)
 #
 # $1 then becomes the name we passed in: a1[@].  ${!x} is bash's "Inderection"
 # mechanism; similar to Perl's ability to have "variable variables": 
@@ -193,7 +193,7 @@ search_and_replace()
 # credit for the following sed script goes to:
 # Michael Paoli Michael.Paoli at cal.berkeley.edu
 # http://linuxmafia.com/pipermail/sf-lug/2013q1/009829.html
-peek()
+webpeek()
 {
     URL="$1"
     st=$(printf '\040\007') # space and tab
@@ -226,7 +226,8 @@ peek()
 }
 
 lstree()
-# heirarchically sorted long-format directory listing for all nodes in path
+# heirarchically sorted long-format directory listing for all directory nodes in path
+# handy for checking permissions/ownership on a directory heirarchy
 {
     local LSTREE_PATH="${1:-$PWD}"
     local NODES=( "$LSTREE_PATH" )
@@ -349,21 +350,5 @@ gg()
     fi
     grep --exclude-dir=.git --exclude-dir=build --exclude-dir=dist --exclude-dir=include --exclude-dir=lib --exclude-dir=local --exclude-dir=man --exclude=tags -"${ARGS}"  "${SEARCH}"  |  less -XS
 }
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                           #
-#                   L O C A L   C U S T O M I Z A T I O N S                 #
-#                                                                           #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# put whatever you want into the following directory to add locally-controlled
-# files not necessarily kept in source control (all files should be bash syntax)
-if [ -d "$HOME"/.bash/functions.d ]
-then
-    for f in "$HOME"/.bash/functions.d/*
-    do
-        . "$f"
-    done
-fi
 
 # vi: set syntax=bash

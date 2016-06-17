@@ -44,5 +44,5 @@ LOCAL_DATE=$( date -d "$LOCAL_VERSION" '+%s' )
 [ "$REMOTE_DATE" -le "$LOCAL_DATE" ] && exit 0
 
 # not up to date... rather than issue warning just try to do it
-/root/bin/etcskel-update /etc/skel 2>&1 >/dev/null
+/root/bin/etcskel-update -f /etc/skel 2>&1 >/dev/null
 SC=$? && [ $SC -eq 0 ] || die "failed with status code $SC"
