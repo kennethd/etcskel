@@ -10,18 +10,18 @@
 *.sw[p,o]
 
 # my inconsistently-named venvs
-/env2.7/
-/env27/
-/env3/
-/venv2.7/
-/venv27/
-/venv3/
-/python2.7/
-/python27/
-/python3/
-/py2.7/
-/py27/
-/py3/
+env2.7/
+env27/
+env3/
+venv2.7/
+venv27/
+venv3/
+python2.7/
+python27/
+python3/
+py2.7/
+py27/
+py3/
 
 
 
