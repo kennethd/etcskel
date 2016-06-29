@@ -15,3 +15,5 @@ etc/logrotate
 .bash/functions.d/README
 .bash/functions.d
 .bash
+.bash_aliases
+.bash_functions
