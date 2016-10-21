@@ -16,7 +16,14 @@ shopt -s histappend
 shopt -s checkwinsize
 
 # make less more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+if [[ "$(lesspipe)" == "export LESSOPEN="* ]]
+then
+    # debian/ubuntu version ouputs LESSOPEN & LESSCLOSE vars to eval
+    [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+else
+    # gentoo/funtoo just tells you what to export in `lesspipe -h`
+    export LESSOPEN="|lesspipe %s"
+fi
 # LESS options:
 # -F    --quit-if-one-screen
 # -R    --RAW_CONTROL_CHARS (git log friendly)
